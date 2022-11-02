@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#FDEED8</color>
+    <color name="colorAccent">#9D734D</color>
+    <color name="colorPrimaryDark">#FFFFFFFF</color>
+    <color name="purple_200">#FFBB86FC</color>
+    <color name="purple_500">#FF6200EE</color>
+    <color name="purple_700">#FF3700B3</color>
+    <color name="teal_200">#FF03DAC5</color>
+    <color name="teal_700">#FF018786</color>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+
+    <color name="main_background">#FDEED8</color>
+    <color name="btn_background">#9D734D</color>
+
+
+    <color name="home_text">#ff333333</color>
+    <color name="txt_777">#777777</color>
+    <color name="txt_f5">#f5f5f5</color>
+    <color name="txt_F3C585">#F3C585</color>
+    <color name="transparent">#00000000</color>
+    <color name="title_text">#000000</color>
+    <color name="text_ccc">#CCCCCC</color>
+    <color name="text_A59EA7">#A59EA7</color>
+
+    <!--ProgressView-->
+    <color name="default_pv_track_color">#F3E5DD</color>
+    <color name="config_color_light_orange">#FFC288</color>
+    <color name="config_color_dark_orange">#FF8F5D</color>
+</resources>

@@ -1,0 +1,85 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme. -->
+    <style name="Theme.BlackButton" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <!--将ActionBar隐藏,这里使用ToolBar-->
+        <item name="windowActionBar">false</item>
+        <!-- 使用 API Level 22以上编译的话，要拿掉前綴字 -->
+        <item name="windowNoTitle">true</item>
+        <!--colorPrimary 对应ToolBar的颜色-->
+        <item name="colorPrimary">@color/black</item>
+        <!--colorPrimaryDark对应状态栏的颜色-->
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <!--colorAccent 对应EditText编辑时、RadioButton选中、CheckBox等选中时的颜色。-->
+        <item name="colorAccent">@color/colorPrimary</item>
+        <!-- Primary brand color. -->
+        <item name="colorPrimaryVariant">@color/purple_700</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <!-- Secondary brand color. -->
+        <item name="colorSecondary">@color/teal_200</item>
+        <item name="colorSecondaryVariant">@color/teal_700</item>
+        <item name="colorOnSecondary">@color/black</item>
+        <!-- Status bar color. -->
+        <!-- Customize your theme here. -->
+        <item name="android:windowBackground">@color/main_background</item>
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:navigationBarColor" >@android:color/transparent</item>
+        <item name="android:statusBarColor" >@android:color/transparent</item>
+    </style>
+    <style name="Launch">
+        <item name="android:windowFullscreen">true</item>
+    </style>
+    <style name="SplashTheme" parent="Launch">
+        <item name="android:windowBackground">@drawable/bg_startup</item>
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:navigationBarColor" >@android:color/transparent</item>
+        <item name="android:statusBarColor" >@android:color/transparent</item>
+    </style>
+
+    <style name="radio_group_false">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:paddingLeft">31dp</item>
+        <item name="android:paddingRight">31dp</item>
+        <item name="android:paddingTop">@dimen/dp18</item>
+        <item name="android:paddingBottom">@dimen/dp18</item>
+        <item name="android:layout_margin">@dimen/dp3</item>
+        <item name="android:gravity">center</item>
+        <item name="android:layout_gravity">center</item>
+        <item name="android:button">@null</item>
+        <item name="android:textSize">@dimen/sp13</item>
+        <item name="android:textColor">@color/text_A59EA7</item>
+    </style>
+    <style name="radio_group_true">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:paddingLeft">31dp</item>
+        <item name="android:paddingRight">31dp</item>
+        <item name="android:paddingTop">@dimen/dp18</item>
+        <item name="android:paddingBottom">@dimen/dp18</item>
+        <item name="android:layout_margin">@dimen/dp3</item>
+        <item name="android:gravity">center</item>
+        <item name="android:layout_gravity">center</item>
+        <item name="android:button">@null</item>
+        <item name="android:background">@drawable/radio_bg_check</item>
+        <item name="android:textSize">@dimen/sp13</item>
+        <item name="android:textColor">@color/white</item>
+    </style>
+    <style name="AdAttribution">
+        <item name="android:layout_width">@dimen/dp23</item>
+        <item name="android:layout_height">@dimen/dp14</item>
+        <item name="android:layout_gravity">right</item>
+        <item name="android:background">@mipmap/ic_ad</item>
+    </style>
+
+    <style name="ad_action">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:gravity">center</item>
+        <item name="paddingStart">@dimen/dp20</item>
+        <item name="paddingEnd">@dimen/dp20</item>
+        <item name="android:paddingTop">@dimen/dp7</item>
+        <item name="android:paddingBottom">@dimen/dp7</item>
+        <item name="android:textColor">@color/white</item>
+        <item name="android:textSize">14sp</item>
+    </style>
+</resources>

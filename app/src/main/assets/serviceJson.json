@@ -1,0 +1,20 @@
+{
+  "safeLocation": [
+    {
+      "bb_pwd": "wdovPx91HPW8FMnavyjl",
+      "bb_method": "chacha20-ietf-poly1305",
+      "bb_port": 2177,
+      "bb_country": "United States",
+      "bb_city": "New York",
+      "bb_ip": "202.78.172.67"
+    },
+    {
+      "bb_pwd": "wdovPx91HPW8FMnavyjl",
+      "bb_method": "chacha20-ietf-poly1305",
+      "bb_port": 2177,
+      "bb_country": "Canada",
+      "bb_city": "Toronto",
+      "bb_ip": "134.195.196.70"
+    }
+  ]
+}

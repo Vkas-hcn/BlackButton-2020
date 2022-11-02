@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    package="com.demo.blackbutton">
+
+    <application
+        android:name=".app.App"
+        android:icon="@mipmap/logo"
+        android:label="@string/app_name"
+        android:resizeableActivity="false"
+        android:roundIcon="@mipmap/logo"
+        android:supportsRtl="false"
+        android:theme="@style/Theme.BlackButton"
+        tools:ignore="UnusedAttribute"
+        tools:replace="android:icon,android:supportsRtl">
+        <activity
+            android:name=".ui.StartupActivity"
+            android:exported="true"
+            android:theme="@style/Theme.BlackButton">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.app.lib_name"
+                android:value="" />
+        </activity>
+<!--        <meta-data-->
+<!--            android:name="com.google.android.gms.ads.APPLICATION_ID"-->
+<!--            android:value="ca-app-pub-2174740078812392~7263824144" />-->
+
+        <activity
+            android:name=".ui.MainActivity"
+            android:launchMode="singleTask" />
+        <activity android:name=".ui.servicelist.ServiceListActivity" />
+        <activity
+            android:name=".ui.agreement.AgreementWebView"
+            android:launchMode="singleTop" />
+        <activity
+            android:name=".ui.ResultsActivity"
+            android:launchMode="singleTop" />
+    </application>
+
+</manifest>

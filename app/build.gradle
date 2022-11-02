@@ -1,0 +1,60 @@
+plugins {
+    id 'com.android.application'
+    id 'kotlin-android'
+    id 'kotlin-parcelize'
+    id 'kotlin-kapt'
+}
+
+android {
+    compileSdk rootProject.ext.android.compileSdk
+
+    defaultConfig {
+        applicationId "com.demo.blackbutton"
+        minSdk rootProject.ext.android.minSdk
+        targetSdk rootProject.ext.android.targetSdk
+        versionCode rootProject.ext.android.versionCode
+        versionName rootProject.ext.android.versionName
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
+    dataBinding {
+        enabled = true
+    }
+    lintOptions {
+        checkReleaseBuilds false
+        abortOnError false
+    }
+}
+
+dependencies {
+    implementation rootProject.ext.dependencies.coreKtx
+    implementation rootProject.ext.dependencies.fragmentKtx
+    implementation rootProject.ext.dependencies.lifeCycleKtx
+    implementation rootProject.ext.dependencies.liveDataKtx
+    implementation rootProject.ext.dependencies.viewModelKtx
+    implementation rootProject.ext.dependencies.appcompat
+    implementation rootProject.ext.dependencies.material
+    implementation rootProject.ext.dependencies.constraintlayout
+    implementation rootProject.ext.dependencies.coroutines
+    implementation rootProject.ext.dependencies.androidUtilCode
+    implementation rootProject.ext.dependencies.lottie
+    implementation platform(rootProject.ext.dependencies.firebaseBom)
+    implementation rootProject.ext.dependencies.firebaseConfigKtx
+    implementation project(':shadowsocks')
+    implementation 'com.github.xuexiangjys.XUtil:xutil-core:1.1.7'
+    implementation 'com.github.CymChad:BaseRecyclerViewAdapterHelper:3.0.8'
+    implementation 'io.github.jeremyliao:live-event-bus-x:1.8.0'
+    implementation 'com.tencent:mmkv:1.2.14'
+}
