@@ -10,7 +10,7 @@
         android:resizeableActivity="false"
         android:roundIcon="@mipmap/logo"
         android:supportsRtl="false"
-        android:theme="@style/Theme.BlackButton"
+        android:theme="@style/Theme.AppCompat.DayNight.NoActionBar"
         tools:ignore="UnusedAttribute"
         tools:replace="android:icon,android:supportsRtl">
         <activity

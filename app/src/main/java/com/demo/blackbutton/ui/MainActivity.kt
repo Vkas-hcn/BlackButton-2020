@@ -19,6 +19,7 @@ import com.demo.blackbutton.ui.servicelist.ServiceListActivity
 import com.demo.blackbutton.utils.*
 import com.demo.blackbutton.utils.Utils.FlagConversion
 import com.demo.blackbutton.widget.SlidingMenu
+import com.example.testdemo.utils.KLog
 import com.github.shadowsocks.Core
 import com.github.shadowsocks.aidl.IShadowsocksService
 import com.github.shadowsocks.aidl.ShadowsocksConnection
@@ -62,6 +63,9 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
     private lateinit var radioButton0: TextView
     private lateinit var radioButton1: TextView
     private lateinit var clSwitch: ConstraintLayout
+
+    // 是否能跳转
+    private var canIJump = false
 
     //    private var mInterstitialAd: InterstitialAd? = null
 //    private lateinit var mNativeAds: AdLoader.Builder
@@ -321,6 +325,7 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
      * vpnSwitch
      */
     private fun vpnSwitch() {
+        canIJump = true
         imgSwitch.playAnimation()
         MmkvUtils.set(Constant.SLIDING, true)
         lifecycleScope.launch(Dispatchers.Main) {
@@ -391,6 +396,7 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
      * 更新服务器
      */
     private fun updateServer(safeLocation: ProfileBean.SafeLocation) {
+        canIJump = true
         settingsIcon(safeLocation)
         bestServiceData = safeLocation
         ProfileManager.getProfile(DataStore.profileId).let {
@@ -542,9 +548,11 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
             setSwitchStatus()
             return
         }
-        val intent = Intent(this@MainActivity, ResultsActivity::class.java)
-        intent.putExtra(Constant.CONNECTION_STATUS, flag)
-        startActivity(intent)
+        if (canIJump) {
+            val intent = Intent(this@MainActivity, ResultsActivity::class.java)
+            intent.putExtra(Constant.CONNECTION_STATUS, flag)
+            startActivity(intent)
+        }
     }
 
     override fun stateChanged(state: BaseService.State, profileName: String?, msg: String?) =
@@ -627,14 +635,13 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
 //        currentNativeAd?.destroy()
     }
 
-
-
     override fun onPause() {
         super.onPause()
         isFrontDesk = false
     }
 
     override fun onRetry() {
+        finish()
 //        ToastUtils.toast(R.string.exit_procedure)
     }
 

@@ -92,6 +92,7 @@ class StartupActivity : AppCompatActivity(),
         val dataJson = JsonUtil.toJson(bestData)
         MmkvUtils.set(Constant.BEST_SERVICE_DATA, dataJson)
         startActivity(intent)
+        finish()
     }
 
     override fun onStop() {
