@@ -39,27 +39,23 @@
                 android:textSize="18sp" />
             <FrameLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="324dp"
+                android:layout_margin="@dimen/dp20"
                 android:layout_marginTop="@dimen/dp19">
 
-<!--                <com.google.android.gms.ads.AdView-->
-<!--                    android:id="@+id/adView"-->
-<!--                    android:layout_width="match_parent"-->
-<!--                    android:layout_height="200dp"-->
-<!--                    android:layout_marginBottom="8dp"-->
-<!--                    android:visibility="gone"-->
-<!--                    app:adSize="SMART_BANNER"-->
-<!--                    app:adUnitId="ca-app-pub-3940256099942544/6300978111"-->
-<!--                    app:layout_constraintBottom_toTopOf="@+id/timer"-->
-<!--                    app:layout_constraintEnd_toEndOf="parent"-->
-<!--                    app:layout_constraintStart_toStartOf="parent"-->
-<!--                    app:layout_constraintTop_toTopOf="parent" />-->
+                <FrameLayout
+                    android:id="@+id/ad_frame_results"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_results_ad"
+                    android:visibility="gone"/>
 
-<!--                <ImageView-->
-<!--                    android:layout_width="wrap_content"-->
-<!--                    android:layout_height="wrap_content"-->
-<!--                    android:layout_gravity="center"-->
-<!--                    android:src="@mipmap/ic_placeholder2" />-->
+                <ImageView
+                    android:id="@+id/img_ad_frame_results"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:src="@mipmap/ic_placeholder2" />
             </FrameLayout>
 
         </LinearLayout>

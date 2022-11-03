@@ -25,6 +25,8 @@ ext {
             firebaseBom      : "com.google.firebase:firebase-bom:29.3.1",
             firebaseConfigKtx: "com.google.firebase:firebase-config-ktx",
             androidUtilCode  : "com.blankj:utilcodex:1.31.0",
-            lottie           : "com.airbnb.android:lottie:5.0.3"
+            lottie           : "com.airbnb.android:lottie:5.0.3",
+            //admob广告
+            gmsAds           : "com.google.android.gms:play-services-ads:20.6.0"
     ]
 }

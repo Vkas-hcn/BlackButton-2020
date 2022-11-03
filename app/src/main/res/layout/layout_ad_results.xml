@@ -1,32 +1,36 @@
-
 <com.google.android.gms.ads.nativead.NativeAdView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_gravity="center">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <com.google.android.gms.ads.nativead.MediaView
+            android:id="@+id/ad_media"
+            android:layout_width="match_parent"
+            android:layout_height="177dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_margin="@dimen/dp12"
+            android:foreground="@mipmap/ic_ad2"
+            android:foregroundGravity="right|bottom" />
+
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="@dimen/dp12"
+            android:layout_marginRight="@dimen/dp12"
+            android:layout_marginBottom="@dimen/dp13"
+            android:gravity="center"
             android:orientation="vertical">
-
-            <com.google.android.gms.ads.nativead.MediaView
-                android:id="@+id/ad_media"
-                android:layout_width="match_parent"
-                android:layout_height="142dp"
-                android:layout_gravity="center_horizontal"
-                android:foreground="@mipmap/ic_ad"
-                android:layout_marginStart="@dimen/dp12"
-                android:layout_marginEnd="@dimen/dp12"
-                android:layout_marginTop="@dimen/dp15"
-                android:layout_marginBottom="@dimen/dp7"
-                android:foregroundGravity="right|top" />
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginLeft="@dimen/dp12"
-                android:layout_marginRight="@dimen/dp12"
-                android:layout_marginBottom="@dimen/dp10"
                 android:gravity="center"
+                android:layout_marginBottom="@dimen/dp15"
                 android:orientation="horizontal">
 
                 <ImageView
@@ -38,9 +42,9 @@
                 <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:layout_marginEnd="@dimen/dp8"
                     android:layout_marginStart="@dimen/dp8"
+                    android:layout_marginEnd="@dimen/dp8"
+                    android:layout_weight="1"
                     android:orientation="vertical">
 
                     <TextView
@@ -56,31 +60,23 @@
                         android:layout_height="wrap_content">
 
                         <TextView
-                            android:id="@+id/ad_advertiser"
-                            android:layout_width="wrap_content"
-                            android:layout_height="match_parent"
-                            android:gravity="bottom"
-                            android:textSize="14sp"
-                            android:textStyle="bold"
-                            android:visibility="gone" />
-
-                        <TextView
                             android:id="@+id/ad_body"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:singleLine="true"
-                            android:lines="2"
                             android:ellipsize="end"
+                            android:lines="2"
+                            android:singleLine="true"
                             android:textColor="#FF9D734D"
                             android:textSize="12sp" />
                     </LinearLayout>
 
                 </LinearLayout>
 
-                <Button
-                    android:id="@+id/ad_call_to_action"
-                    style="@style/ad_action"/>
             </LinearLayout>
 
+            <Button
+                android:id="@+id/ad_call_to_action"
+                style="@style/ad_action2" />
         </LinearLayout>
+    </LinearLayout>
 </com.google.android.gms.ads.nativead.NativeAdView>

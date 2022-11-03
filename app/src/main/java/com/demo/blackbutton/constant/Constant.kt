@@ -7,8 +7,10 @@ package com.demo.blackbutton.constant
  */
 
 object Constant {
-    //跳转主页
-    const val JUMP_PAGE = "jumpPage"
+    //开屏广告
+    const val OPEN_AD = "OPEN_AD"
+    //回到当前页
+    const val RETURN_CURRENT_PAGE = "RETURN_CURRENT_PAGE"
     //服务器信息
     const val SERVER_INFORMATION = "serverInformation"
     //滑动

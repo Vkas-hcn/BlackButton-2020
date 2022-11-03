@@ -6,6 +6,9 @@ import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.OnLifecycleEvent
+import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.demo.blackbutton.R
@@ -18,6 +21,7 @@ import com.demo.blackbutton.utils.ResourceUtils.readStringFromAssert
 import com.demo.blackbutton.utils.StatusBarUtils
 import com.demo.blackbutton.utils.Utils.addTheBestRoute
 import com.demo.blackbutton.utils.Utils.isNullOrEmpty
+import com.example.testdemo.utils.KLog
 import com.google.gson.reflect.TypeToken
 import com.jeremyliao.liveeventbus.LiveEventBus
 import com.tencent.mmkv.MMKV
@@ -174,5 +178,9 @@ class ServiceListActivity : AppCompatActivity() {
             readStringFromAssert(jsonName),
             object : TypeToken<ProfileBean?>() {}.type
         )
+    }
+    @OnLifecycleEvent(Lifecycle.Event.ON_RESUME)
+    fun onResumeJumpPage() {
+        KLog.e("TAG","ON_RESUME----->")
     }
 }

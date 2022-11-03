@@ -76,10 +76,20 @@
         <item name="android:layout_width">wrap_content</item>
         <item name="android:layout_height">wrap_content</item>
         <item name="android:gravity">center</item>
-        <item name="paddingStart">@dimen/dp20</item>
-        <item name="paddingEnd">@dimen/dp20</item>
-        <item name="android:paddingTop">@dimen/dp7</item>
-        <item name="android:paddingBottom">@dimen/dp7</item>
+        <item name="paddingStart">@dimen/dp19</item>
+        <item name="paddingEnd">@dimen/dp19</item>
+        <item name="android:paddingTop">@dimen/dp6</item>
+        <item name="android:paddingBottom">@dimen/dp6</item>
+        <item name="android:textColor">@color/white</item>
+        <item name="android:textSize">14sp</item>
+    </style>
+    <style name="ad_action2">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:gravity">center</item>
+        <item name="android:paddingTop">@dimen/dp11</item>
+        <item name="android:paddingBottom">@dimen/dp11</item>
+        <item name="android:background">@drawable/bg_button_action</item>
         <item name="android:textColor">@color/white</item>
         <item name="android:textSize">14sp</item>
     </style>

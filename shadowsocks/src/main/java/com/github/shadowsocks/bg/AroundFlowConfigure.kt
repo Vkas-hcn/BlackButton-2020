@@ -55,7 +55,6 @@ object AroundFlowConfigure {
         when (strategy.around_flow_mode) {
             //黑名单绕流
             "1" -> {
-                Toast.makeText(context,"111111111111111",Toast.LENGTH_SHORT).show()
                 (listOf(myPackageName) + listGmsPackages() + (strategy.black_list))
                     .iterator()
                     .forEachRemaining {
@@ -64,8 +63,6 @@ object AroundFlowConfigure {
             }
             //白名单扰流
             "2" -> {
-                Toast.makeText(context,"22222222222222",Toast.LENGTH_SHORT).show()
-
                 (listWhitePackages()+strategy.white_list )
                     .iterator()
                     .forEachRemaining {
@@ -73,8 +70,6 @@ object AroundFlowConfigure {
                     }
             }
             else -> {
-                Toast.makeText(context,"elseelseelseelse",Toast.LENGTH_SHORT).show()
-
                 builder.addDisallowedApplication(myPackageName)
             }
         }

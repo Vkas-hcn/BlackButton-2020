@@ -36,6 +36,7 @@ import androidx.annotation.RequiresApi
 import androidx.annotation.VisibleForTesting
 import androidx.core.content.ContextCompat
 import androidx.core.content.getSystemService
+import androidx.lifecycle.LifecycleObserver
 import androidx.work.Configuration
 import com.github.shadowsocks.acl.Acl
 import com.github.shadowsocks.aidl.ShadowsocksConnection
@@ -61,7 +62,7 @@ import java.io.File
 import java.io.IOException
 import kotlin.reflect.KClass
 
-object Core : Configuration.Provider {
+object Core : Configuration.Provider, LifecycleObserver {
     lateinit var app: Application
         @VisibleForTesting set
     lateinit var configureIntent: (Context) -> PendingIntent
