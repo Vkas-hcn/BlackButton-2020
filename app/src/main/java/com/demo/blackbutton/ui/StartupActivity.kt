@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.os.Looper
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
 import com.demo.blackbutton.BuildConfig
 import com.demo.blackbutton.R
 import com.demo.blackbutton.constant.Constant
@@ -18,6 +19,9 @@ import com.google.firebase.ktx.Firebase
 import com.google.firebase.remoteconfig.ktx.remoteConfig
 import com.jeremyliao.liveeventbus.LiveEventBus
 import com.xuexiang.xutil.tip.ToastUtils
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.util.*
 
 /**
@@ -26,8 +30,6 @@ import java.util.*
 class StartupActivity : AppCompatActivity(),
     HorizontalProgressView.HorizontalProgressUpdateListener {
     private lateinit var horizontalProgressView: HorizontalProgressView
-    private val timer = Timer()
-    private val timerTask: TimerTask = HomeTimerTask()
 
     // 绕流数据
     private lateinit var aroundFlowData: AroundFlowBean
@@ -45,12 +47,6 @@ class StartupActivity : AppCompatActivity(),
         horizontalProgressView.startProgressAnimation()
         aroundFlowData = AroundFlowBean()
         getFirebaseData()
-
-        LiveEventBus
-            .get("JUMP_PAGE", Boolean::class.java)
-            .observeForever {
-                jumpPage()
-            }
     }
 
     /**
@@ -58,7 +54,10 @@ class StartupActivity : AppCompatActivity(),
      */
     private fun getFirebaseData() {
         if (BuildConfig.DEBUG) {
-            timer.schedule(timerTask, 2000)
+            lifecycleScope.launch(Dispatchers.Main) {
+                delay(2000L)
+                jumpPage()
+            }
             return
         } else {
             val auth = Firebase.remoteConfig
@@ -67,21 +66,14 @@ class StartupActivity : AppCompatActivity(),
                 MmkvUtils.set(Constant.AROUND_FLOW_DATA, auth.getString("aroundFlowData"))
                 MmkvUtils.set(Constant.PROFILE_DATA, auth.getString("profileData"))
             }.addOnCompleteListener {
-                timer.schedule(timerTask, 2000)
+                lifecycleScope.launch(Dispatchers.Main) {
+                    delay(2000L)
+                    jumpPage()
+                }
             }
         }
     }
 
-    /**
-     * 延时
-     */
-    class HomeTimerTask : TimerTask() {
-        override fun run() {
-            Looper.prepare()
-            LiveEventBus.get<Boolean>("JUMP_PAGE").post(true)
-            Looper.loop()
-        }
-    }
 
     /**
      * 跳转页面

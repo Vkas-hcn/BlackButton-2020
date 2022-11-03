@@ -20,6 +20,10 @@
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
 -dontwarn com.jeremyliao.liveeventbus.**
--keep class com.jeremyliao.liveeventbus.** { *; }
--keep class androidx.lifecycle.** { *; }
--keep class androidx.arch.core.** { *; }
+-keep class com.jeremyliao.liveeventbus.LiveEventBus { *; }
+-keep class androidx.lifecycle.ExternalLiveData { *; }
+-dontwarn androidx.lifecycle.LiveData
+-keep class androidx.lifecycle.LiveData { *; }
+-keep class androidx.lifecycle.LifecycleRegistry { *; }
+-keep class androidx.arch.core.internal.SafeIterableMap { *; }
+-keep class com.demo.blackbutton.constant.Constant {*;}

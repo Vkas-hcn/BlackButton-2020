@@ -4,6 +4,7 @@ import android.content.Context
 import com.tencent.mmkv.MMKV
 import android.net.VpnService
 import android.util.Log
+import android.widget.Toast
 import com.github.shadowsocks.bean.AroundFlowBean
 import com.github.shadowsocks.utils.JsonUtil
 
@@ -20,10 +21,10 @@ object AroundFlowConfigure {
      * @return 解析aroundFlow json文件
      */
     private fun getAroundFlowJsonData(): AroundFlowBean {
-        if(com.github.shadowsocks.core.BuildConfig.DEBUG){
+        if(mmkv.decodeString("aroundFlowData").isNullOrEmpty()){
             return JsonUtil.fromJson(
                 "{\n" +
-                        "  \"around_flow_mode\": \"1\",\n" +
+                        "  \"around_flow_mode\": \"0\",\n" +
                         "  \"black_list\": [\n" +
                         "    \"com.UCMobile\"\n" +
                         "  ],\n" +
@@ -54,6 +55,7 @@ object AroundFlowConfigure {
         when (strategy.around_flow_mode) {
             //黑名单绕流
             "1" -> {
+                Toast.makeText(context,"111111111111111",Toast.LENGTH_SHORT).show()
                 (listOf(myPackageName) + listGmsPackages() + (strategy.black_list))
                     .iterator()
                     .forEachRemaining {
@@ -62,13 +64,19 @@ object AroundFlowConfigure {
             }
             //白名单扰流
             "2" -> {
+                Toast.makeText(context,"22222222222222",Toast.LENGTH_SHORT).show()
+
                 (listWhitePackages()+strategy.white_list )
                     .iterator()
                     .forEachRemaining {
                         runCatching { builder.addAllowedApplication(it) }
                     }
             }
-            else -> builder.addDisallowedApplication(myPackageName)
+            else -> {
+                Toast.makeText(context,"elseelseelseelse",Toast.LENGTH_SHORT).show()
+
+                builder.addDisallowedApplication(myPackageName)
+            }
         }
     }
 
