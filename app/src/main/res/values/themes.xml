@@ -29,12 +29,6 @@
     <style name="Launch">
         <item name="android:windowFullscreen">true</item>
     </style>
-    <style name="SplashTheme" parent="Launch">
-        <item name="android:windowBackground">@drawable/bg_startup</item>
-        <item name="android:windowFullscreen">true</item>
-        <item name="android:navigationBarColor" >@android:color/transparent</item>
-        <item name="android:statusBarColor" >@android:color/transparent</item>
-    </style>
 
     <style name="radio_group_false">
         <item name="android:layout_width">wrap_content</item>

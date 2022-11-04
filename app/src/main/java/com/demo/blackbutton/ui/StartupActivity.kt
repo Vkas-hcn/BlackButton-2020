@@ -53,25 +53,25 @@ class StartupActivity : AppCompatActivity(),
      * 获取Firebase数据
      */
     private fun getFirebaseData() {
-        if (BuildConfig.DEBUG) {
+//        if (BuildConfig.DEBUG) {
             lifecycleScope.launch(Dispatchers.Main) {
                 delay(2000L)
                 jumpPage()
             }
-            return
-        } else {
-            val auth = Firebase.remoteConfig
-            auth.fetchAndActivate().addOnSuccessListener {
-                ToastUtils.toast("fireBase Connection succeeded")
-                MmkvUtils.set(Constant.AROUND_FLOW_DATA, auth.getString("aroundFlowData"))
-                MmkvUtils.set(Constant.PROFILE_DATA, auth.getString("profileData"))
-            }.addOnCompleteListener {
-                lifecycleScope.launch(Dispatchers.Main) {
-                    delay(2000L)
-                    jumpPage()
-                }
-            }
-        }
+//            return
+//        } else {
+//            val auth = Firebase.remoteConfig
+//            auth.fetchAndActivate().addOnSuccessListener {
+//                ToastUtils.toast("fireBase Connection succeeded")
+//                MmkvUtils.set(Constant.AROUND_FLOW_DATA, auth.getString("aroundFlowData"))
+//                MmkvUtils.set(Constant.PROFILE_DATA, auth.getString("profileData"))
+//            }.addOnCompleteListener {
+//                lifecycleScope.launch(Dispatchers.Main) {
+//                    delay(2000L)
+//                    jumpPage()
+//                }
+//            }
+//        }
     }
 
 

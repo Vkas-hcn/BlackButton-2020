@@ -27,3 +27,6 @@
 -keep class androidx.lifecycle.LifecycleRegistry { *; }
 -keep class androidx.arch.core.internal.SafeIterableMap { *; }
 -keep class com.demo.blackbutton.constant.Constant {*;}
+-dontwarn android.support.annotation.Keep
+#保留注解，如果不添加改行会导致我们的@Keep注解失效
+-keepattributes *Annotation*
