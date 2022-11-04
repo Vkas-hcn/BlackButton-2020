@@ -115,6 +115,8 @@ class App : Application(), androidx.work.Configuration.Provider by Core,
                 activityManager.moveTaskToFront(taskInfo.id, ActivityManager.MOVE_TASK_WITH_HOME)
                 val intent = Intent(context, Class)
                 intent.addCategory(Intent.CATEGORY_LAUNCHER)
+                intent.putExtra(Constant.RETURN_CURRENT_PAGE, true)
+
                 intent.action = Intent.ACTION_MAIN
                 intent.flags =
                     Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED
@@ -210,8 +212,8 @@ class App : Application(), androidx.work.Configuration.Provider by Core,
                         appOpenAd = ad
                         isLoadingAd = false
                         loadTime = Date().time
-//                        LiveEventBus.get<Boolean>(Constant.OPEN_AD)
-//                            .post(true)
+                        LiveEventBus.get<Boolean>(Constant.OPEN_AD)
+                            .post(true)
                         Log.d(LOG_TAG, "onAdLoaded.")
                         Toast.makeText(context, "onAdLoaded", Toast.LENGTH_SHORT).show()
                     }
@@ -324,9 +326,9 @@ class App : Application(), androidx.work.Configuration.Provider by Core,
                 }
             }
             isShowingAd = true
-//            if (ActivityCollector.isActivityExist(StartupActivity::class.java)) {
-//                appOpenAd!!.show(activity)
-//            }
+            if (ActivityCollector.isActivityExist(StartupActivity::class.java)) {
+                appOpenAd!!.show(activity)
+            }
         }
     }
 
