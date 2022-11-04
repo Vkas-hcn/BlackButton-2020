@@ -92,8 +92,12 @@ class ServiceListActivity : AppCompatActivity() {
         if (!whetherBestServer) {
             safeLocation.forEach {
                 it.cheek_state = it.bb_ip == selectIp
+                if (it.cheek_state == true) {
+                    checkSafeLocation = it
+                }
             }
             safeLocation[0].cheek_state =false
+            checkSafeLocation.cheek_state =true
         }
         serviceListAdapter = ServiceListAdapter(safeLocation)
         val layoutManager = LinearLayoutManager(this)
@@ -102,18 +106,23 @@ class ServiceListActivity : AppCompatActivity() {
         recyclerView.adapter = serviceListAdapter
         clickEvent()
     }
-
+    /**
+     * 获取选中数据
+     */
+    private fun getSelectedData(position:Int){
+        safeLocation.forEachIndexed { index, _ ->
+            safeLocation[index].cheek_state = position == index
+            if (safeLocation[index].cheek_state == true) {
+                checkSafeLocation = safeLocation[index]
+            }
+        }
+    }
     /**
      * 点击事件
      */
     private fun clickEvent() {
         serviceListAdapter.setOnItemClickListener { _, _, position ->
-            safeLocation.forEachIndexed { index, _ ->
-                safeLocation[index].cheek_state = position == index
-                if (safeLocation[index].cheek_state == true) {
-                    checkSafeLocation = safeLocation[index]
-                }
-            }
+            getSelectedData(position)
             serviceListAdapter.notifyDataSetChanged()
         }
         blackTitle.setOnClickListener {
