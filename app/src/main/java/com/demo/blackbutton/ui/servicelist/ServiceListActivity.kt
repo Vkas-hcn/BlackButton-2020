@@ -93,6 +93,7 @@ class ServiceListActivity : AppCompatActivity() {
             safeLocation.forEach {
                 it.cheek_state = it.bb_ip == selectIp
             }
+            safeLocation[0].cheek_state =false
         }
         serviceListAdapter = ServiceListAdapter(safeLocation)
         val layoutManager = LinearLayoutManager(this)

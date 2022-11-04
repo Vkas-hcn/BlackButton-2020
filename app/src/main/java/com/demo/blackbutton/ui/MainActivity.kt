@@ -411,7 +411,6 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
      * 更新服务器
      */
     private fun updateServer(safeLocation: ProfileBean.SafeLocation) {
-        canIJump = true
         settingsIcon(safeLocation)
         bestServiceData = safeLocation
         ProfileManager.getProfile(DataStore.profileId).let {
@@ -567,6 +566,7 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
             val intent = Intent(this@MainActivity, ResultsActivity::class.java)
             intent.putExtra(Constant.CONNECTION_STATUS, flag)
             startActivity(intent)
+            canIJump = false
         }
     }
 
