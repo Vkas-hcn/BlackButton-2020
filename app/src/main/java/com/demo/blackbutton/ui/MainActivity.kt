@@ -1,5 +1,6 @@
 package com.demo.blackbutton.ui
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.net.Uri
 import android.os.*
@@ -42,9 +43,8 @@ import com.jeremyliao.liveeventbus.LiveEventBus
 import com.tencent.mmkv.MMKV
 import com.xuexiang.xutil.common.ClickUtils
 import com.xuexiang.xutil.tip.ToastUtils
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import java.text.DecimalFormat
+import kotlinx.coroutines.*
 
 
 class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
@@ -58,7 +58,6 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
     private lateinit var navigation: ImageView
     private lateinit var imgSwitch: LottieAnimationView
     private lateinit var txtConnect: TextView
-    private lateinit var timer: Chronometer
     private lateinit var imgCountry: ImageView
     private lateinit var tvLocation: TextView
     private lateinit var slidingMenu: SlidingMenu
@@ -70,6 +69,7 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
     private lateinit var radioButton0: TextView
     private lateinit var radioButton1: TextView
     private lateinit var clSwitch: ConstraintLayout
+    private lateinit var txtTimer: TextView
 
     // 是否能跳转
     private var canIJump = false
@@ -79,7 +79,6 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
     private lateinit var adRequest: AdRequest
     var state = BaseService.State.Idle
     private val connection = ShadowsocksConnection(true)
-    private var rangeTime = 0f
     private lateinit var bestServiceData: ProfileBean.SafeLocation
     private var isFrontDesk = false
     private val mmkv by lazy {
@@ -103,7 +102,6 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
         initAd()
         initNativeAds()
         clickEvent()
-        timerSet()
         initConnectionServer()
         initLiveBus()
     }
@@ -144,10 +142,16 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
     private fun initAd() {
         adRequest = AdRequest.Builder().build()
         loadScreenAdvertisement(adRequest)
+        // 更新计时器
+        LiveEventBus
+            .get(Constant.TIMER_DATA, Int::class.java)
+            .observeForever {
+                timerUi(it)
+            }
     }
 
     /**
-     * 初始化原生广告
+     *
      */
     private fun initNativeAds() {
         mNativeAds = AdLoader.Builder(this, "ca-app-pub-3940256099942544/2247696110")
@@ -266,6 +270,13 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
     private fun loadScreenAdvertisement(adRequest: AdRequest) {
         AdLoad.loadScreenAdvertisement(this, "ca-app-pub-3940256099942544/1033173712", adRequest)
     }
+    @SuppressLint("SetTextI18n")
+    private fun timerUi(it :Int) {
+        val hh: String = DecimalFormat("00").format(it / 3600)
+        val mm: String = DecimalFormat("00").format(it % 3600 / 60)
+        val ss: String = DecimalFormat("00").format(it % 60)
+        txtTimer.text = "$hh:$mm:$ss"
+    }
 
     private fun initView() {
         frameLayoutTitle = findViewById(R.id.main_title)
@@ -273,7 +284,6 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
             0,
             DensityUtils.px2dp(StatusBarUtils.getStatusBarHeight(this).toFloat()) + 50, 0, 0
         )
-        timer = findViewById(R.id.timer)
         imgSwitch = findViewById(R.id.img_switch)
         txtConnect = findViewById(R.id.txt_connect)
         imgCountry = findViewById(R.id.img_country)
@@ -291,6 +301,7 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
         clSwitch = findViewById(R.id.cl_switch)
         ad_frame = findViewById(R.id.ad_frame)
         imgAdFrame = findViewById(R.id.img_ad_frame)
+        txtTimer = findViewById(R.id.txt_timer)
     }
 
     /**
@@ -353,6 +364,7 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
     /**
      * 开关状态
      */
+    @SuppressLint("UseCompatLoadingForDrawables")
     private fun setSwitchStatus() {
         if (state.name == "Connected") {
             radioButton0.setTextColor(getColor(R.color.white))
@@ -367,24 +379,6 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
             radioButton0.setTextColor(getColor(R.color.white))
             radioButton0.background = null
         }
-    }
-
-    /**
-     * 计时器设置
-     */
-    private fun timerSet() {
-        timer.base = SystemClock.elapsedRealtime()
-        val hour = ((SystemClock.elapsedRealtime() - timer.base) / 1000 / 60)
-        timer.format = "0$hour:%s"
-    }
-
-    /**
-     * 手动开启服务
-     */
-    private fun manuallyStartTheService() {
-        imgSwitch.playAnimation()
-        MmkvUtils.set(Constant.SLIDING, true)
-        startVpn()
     }
 
     /**
@@ -423,6 +417,7 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
         }
         DataStore.profileId = 1L
         isFrontDesk = true
+//        manuallyStartTheService()
         vpnSwitch()
     }
 
@@ -441,6 +436,7 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
     /**
      * 设置图标
      */
+    @SuppressLint("SetTextI18n")
     private fun settingsIcon(profileBean: ProfileBean.SafeLocation) {
         if (profileBean.bestServer == true) {
             tvLocation.text = Constant.FASTER_SERVER
@@ -492,12 +488,11 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
 
     private fun changeState(
         state: BaseService.State,
-        msg: String? = null,
         animate: Boolean = true
     ) {
-        Log.i("TAG", "changeState: --->$state---msg=$msg")
         setConnectionStatusText(state.name)
         this.state = state
+        MmkvUtils.set(Constant.TIMING_DATA, state.name)
         setSwitchStatus()
         stateListener?.invoke(state)
     }
@@ -505,6 +500,7 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
     /**
      * 设置连接状态文本
      */
+    @SuppressLint("SetTextI18n")
     private fun setConnectionStatusText(state: String) {
         when (state) {
             "Connecting" -> {
@@ -533,12 +529,7 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
      * 连接成功
      */
     private fun connectionSucceeded() {
-        if (rangeTime != 0f) {
-            timer.base = (timer.base + (SystemClock.elapsedRealtime() - rangeTime)).toLong()
-        } else {
-            timer.base = SystemClock.elapsedRealtime()
-        }
-        timer.start()
+        NetworkPing.start()
         jumpToTheResultPage(true)
     }
 
@@ -546,10 +537,8 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
      * 连接停止
      */
     private fun connectionStop() {
-        timer.stop()
-        //计数器置空
-        rangeTime = 0f
-        timer.base = SystemClock.elapsedRealtime()
+        NetworkPing.cancel()
+        txtTimer.text = "00:00:00"
     }
 
     /**
@@ -571,15 +560,18 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
     }
 
     override fun stateChanged(state: BaseService.State, profileName: String?, msg: String?) =
-        changeState(state, msg)
+        changeState(state)
 
-    override fun onServiceConnected(service: IShadowsocksService) = changeState(
-        try {
-            BaseService.State.values()[service.state]
-        } catch (_: RemoteException) {
-            BaseService.State.Idle
-        }
-    )
+    override fun onServiceConnected(service: IShadowsocksService) = run {
+        KLog.e("TAG", "changeState: --->${service.state}")
+        changeState(
+            try {
+                BaseService.State.values()[service.state]
+            } catch (_: RemoteException) {
+                BaseService.State.Idle
+            }
+        )
+    }
 
     override fun onPreferenceDataStoreChanged(store: PreferenceDataStore, key: String) {
         when (key) {

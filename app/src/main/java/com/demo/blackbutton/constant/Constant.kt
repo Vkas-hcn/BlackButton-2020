@@ -29,6 +29,8 @@ object Constant {
     const val FASTER_SERVER= "Faster server"
     // bestData
     const val BEST_SERVICE_DATA="bestServiceData"
+    // 计时
+    const val TIMING_DATA="timingData"
     // 是否已连接
     const val WHETHER_CONNECTED="whetherConnected"
     // 当前IP
