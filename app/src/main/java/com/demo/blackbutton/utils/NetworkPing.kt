@@ -4,9 +4,12 @@ import android.content.Context
 import android.net.ConnectivityManager
 import com.demo.blackbutton.bean.ProfileBean
 import com.demo.blackbutton.constant.Constant
+import com.example.testdemo.utils.KLog
 import com.google.gson.reflect.TypeToken
+import com.jeremyliao.liveeventbus.LiveEventBus
 import com.tencent.mmkv.MMKV
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.launchIn
 import java.io.BufferedReader
 import java.io.InputStreamReader
 
@@ -166,5 +169,41 @@ object NetworkPing {
         ) as ConnectivityManager
         val info = manager.activeNetworkInfo
         return !(null == info || !info.isAvailable)
+    }
+
+    private var tTime = 0
+    val timerLaunch = CoroutineScope(job)
+    var clean = true //计时状态 是否为清除
+
+    /**
+     * 定时器线程
+     */
+    fun getTimerThread() {
+        timerLaunch.launch {
+            while (isActive) {
+                tTime++
+                if (!clean) {
+                    LiveEventBus.get<Int>(Constant.TIMER_DATA)
+                        .post(tTime)
+                }
+                delay(1000)
+            }
+        }
+    }
+    /**
+     * 开始倒计时
+     */
+    fun start() {
+        if(clean){
+            tTime = 0   //清除已走时间
+        }
+        clean =false
+    }
+    /**
+     * 清除倒计时
+     */
+    fun cancel() {
+        tTime = 0   //清除已走时间
+        clean =true
     }
 }

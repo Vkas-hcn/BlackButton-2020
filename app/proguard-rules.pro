@@ -30,3 +30,11 @@
 -dontwarn android.support.annotation.Keep
 #保留注解，如果不添加改行会导致我们的@Keep注解失效
 -keepattributes *Annotation*
+
+-dontwarn android.webkit.WebView
+-dontwarn android.net.http.SslError
+-dontwarn android.webkit.WebViewClient
+-keep public class android.webkit.WebView
+-keep public class android.net.http.SslError
+-keep public class android.webkit.WebViewClient
+-keep class com.demo.blackbutton.bean.** { *; } #实体类不参与混淆

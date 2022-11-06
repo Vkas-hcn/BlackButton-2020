@@ -2,10 +2,13 @@ package com.demo.blackbutton.app
 
 import android.app.Application
 import android.content.res.Configuration
+import android.os.SystemClock
+import android.widget.Chronometer
 import androidx.appcompat.app.AppCompatDelegate
 import com.blankj.utilcode.util.ProcessUtils
 import com.demo.blackbutton.BuildConfig
 import com.demo.blackbutton.ui.MainActivity
+import com.demo.blackbutton.utils.NetworkPing
 import com.demo.blackbutton.utils.ResUtils
 import com.example.testdemo.utils.KLog
 import com.github.shadowsocks.Core
@@ -16,6 +19,7 @@ import com.tencent.mmkv.MMKV
 import com.xuexiang.xutil.XUtil
 
 class App : Application(), androidx.work.Configuration.Provider by Core {
+    private lateinit var timer: Chronometer
     override fun onCreate() {
         super.onCreate()
         MMKV.initialize(this)
@@ -31,12 +35,11 @@ class App : Application(), androidx.work.Configuration.Provider by Core {
             KLog.init(BuildConfig.DEBUG)
         }
         Core.init(this, MainActivity::class)
-
+        NetworkPing.getTimerThread()
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
         Core.updateNotificationChannels()
     }
-
 }

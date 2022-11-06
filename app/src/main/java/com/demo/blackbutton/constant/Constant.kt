@@ -9,6 +9,8 @@ package com.demo.blackbutton.constant
 object Constant {
     //跳转主页
     const val JUMP_PAGE = "jumpPage"
+    //计时器数据
+    const val TIMER_DATA = "TIMER_DATA"
     //服务器信息
     const val SERVER_INFORMATION = "serverInformation"
     //滑动
@@ -27,6 +29,8 @@ object Constant {
     const val FASTER_SERVER= "Faster server"
     // bestData
     const val BEST_SERVICE_DATA="bestServiceData"
+    // 计时
+    const val TIMING_DATA="timingData"
     // 是否已连接
     const val WHETHER_CONNECTED="whetherConnected"
     // 当前IP

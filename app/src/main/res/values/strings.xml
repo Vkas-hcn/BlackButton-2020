@@ -19,4 +19,5 @@
     <string name="disconnect_tips" translatable="false">Please disconnect the previous link</string>
     <string name="network_tips" translatable="false">The current device has no network</string>
     <string name="ad_attribution" translatable="false">Ad</string>
+    <string name="_00_00_00">00:00:00</string>
 </resources>

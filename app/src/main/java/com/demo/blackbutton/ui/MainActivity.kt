@@ -1,10 +1,9 @@
 package com.demo.blackbutton.ui
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.net.Uri
 import android.os.*
-import android.util.Log
-import android.view.KeyEvent
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
@@ -35,9 +34,8 @@ import com.jeremyliao.liveeventbus.LiveEventBus
 import com.tencent.mmkv.MMKV
 import com.xuexiang.xutil.common.ClickUtils
 import com.xuexiang.xutil.tip.ToastUtils
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import java.text.DecimalFormat
+import kotlinx.coroutines.*
 
 
 class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
@@ -51,7 +49,6 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
     private lateinit var navigation: ImageView
     private lateinit var imgSwitch: LottieAnimationView
     private lateinit var txtConnect: TextView
-    private lateinit var timer: Chronometer
     private lateinit var imgCountry: ImageView
     private lateinit var tvLocation: TextView
     private lateinit var slidingMenu: SlidingMenu
@@ -63,25 +60,18 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
     private lateinit var radioButton0: TextView
     private lateinit var radioButton1: TextView
     private lateinit var clSwitch: ConstraintLayout
+    private lateinit var txtTimer: TextView
 
     // 是否能跳转
     private var canIJump = false
-
-    //    private var mInterstitialAd: InterstitialAd? = null
-//    private lateinit var mNativeAds: AdLoader.Builder
-//    private lateinit var adRequest: AdRequest
     var state = BaseService.State.Idle
     private val connection = ShadowsocksConnection(true)
-    private var rangeTime = 0f
     private lateinit var bestServiceData: ProfileBean.SafeLocation
     private var isFrontDesk = false
     private val mmkv by lazy {
         //启用mmkv的多进程功能
         MMKV.mmkvWithID("BlackButton", MMKV.MULTI_PROCESS_MODE)
     }
-    private lateinit var ad_frame: FrameLayout
-
-    //    var currentNativeAd: NativeAd? = null
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         with(resources.displayMetrics) {
@@ -92,11 +82,8 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
         StatusBarUtils.setStatusBarLightMode(this)
         setContentView(R.layout.activity_main)
         initParam()
-        initAd()
-//        initNativeAds()
         initView()
         clickEvent()
-        timerSet()
         initConnectionServer()
         initLiveBus()
     }
@@ -126,129 +113,24 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
             .observeForever {
                 updateServer(it)
             }
-//        LiveEventBus
-//            .get(Constant.PLUG_ADVERTISEMENT_CACHE, InterstitialAd::class.java)
-//            .observeForever {
-//                mInterstitialAd = it
-//                plugInAdvertisementCallback()
-//            }
-    }
-
-    private fun initAd() {
-//        adRequest = AdRequest.Builder().build()
-//        loadScreenAdvertisement(adRequest)
+        // 更新计时器
+        LiveEventBus
+            .get(Constant.TIMER_DATA, Int::class.java)
+            .observeForever {
+                timerUi(it)
+            }
     }
 
     /**
-     * 初始化原生广告
+     *
      */
-//    private fun initNativeAds() {
-//        ad_frame = findViewById(R.id.ad_frame)
-//        mNativeAds = AdLoader.Builder(this, "ca-app-pub-3940256099942544/2247696110")
-//        mNativeAds.forNativeAd { nativeAd ->
-//            // OnUnifiedNativeAdLoadedListener implementation.
-//            // If this callback occurs after the activity is destroyed, you must call
-//            // destroy and return or you may get a memory leak.
-//            var activityDestroyed = false
-//            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
-//                activityDestroyed = isDestroyed
-//            }
-//            if (activityDestroyed || isFinishing || isChangingConfigurations) {
-//                nativeAd.destroy()
-//                return@forNativeAd
-//            }
-//            // You must call destroy on old ads when you are done with them,
-//            // otherwise you will have a memory leak.
-//            currentNativeAd?.destroy()
-//            currentNativeAd = nativeAd
-//            val adView = layoutInflater
-//                .inflate(R.layout.layout_ad_view, null) as NativeAdView
-////            val adView = fl.findViewById<NativeAdView>(R.id.nad_view)
-//            populateNativeAdView(nativeAd, adView)
-//            ad_frame.removeAllViews()
-//            ad_frame.addView(adView)
-//        }
-//        val videoOptions = VideoOptions.Builder()
-//            .setStartMuted(true)
-//            .build()
-//
-//        val adOptions = NativeAdOptions.Builder()
-//            .setVideoOptions(videoOptions)
-//            .setAdChoicesPlacement(NativeAdOptions.ADCHOICES_TOP_LEFT)
-//            .setMediaAspectRatio(com.google.android.gms.ads.nativead.NativeAdOptions.NATIVE_MEDIA_ASPECT_RATIO_PORTRAIT)
-//            .build()
-//
-//        mNativeAds.withNativeAdOptions(adOptions)
-//        val adLoader = mNativeAds.withAdListener(object : AdListener() {
-//            override fun onAdFailedToLoad(loadAdError: LoadAdError) {
-//                val error =
-//                    """
-//           domain: ${loadAdError.domain}, code: ${loadAdError.code}, message: ${loadAdError.message}
-//          """"
-//                Toast.makeText(
-//                    this@MainActivity, "Failed to load native ad with error $error",
-//                    Toast.LENGTH_SHORT
-//                ).show()
-//            }
-//        }).build()
-//
-//        adLoader.loadAd(AdRequest.Builder().build())
-//    }
-
-//    private fun populateNativeAdView(nativeAd: NativeAd, adView: NativeAdView) {
-//        // Set the media view.
-//        adView.mediaView = adView.findViewById(R.id.ad_media)
-//
-//        // Set other ad assets.
-//        adView.headlineView = adView.findViewById(R.id.ad_headline)
-//        adView.bodyView = adView.findViewById(R.id.ad_body)
-//        adView.callToActionView = adView.findViewById(R.id.ad_call_to_action)
-//        adView.iconView = adView.findViewById(R.id.ad_app_icon)
-//        adView.advertiserView = adView.findViewById(R.id.ad_advertiser)
-//        (adView.headlineView as TextView).text = nativeAd.headline
-//        nativeAd.mediaContent?.let { adView.mediaView?.setMediaContent(it) }
-//
-//        // These assets aren't guaranteed to be in every UnifiedNativeAd, so it's important to
-//        // check before trying to display them.
-//        if (nativeAd.body == null) {
-//            adView.bodyView?.visibility = View.INVISIBLE
-//        } else {
-//            adView.bodyView?.visibility = View.VISIBLE
-//            (adView.bodyView as TextView).text = nativeAd.body
-//        }
-//
-//        if (nativeAd.callToAction == null) {
-//            adView.callToActionView?.visibility = View.INVISIBLE
-//        } else {
-//            adView.callToActionView?.visibility = View.VISIBLE
-//            (adView.callToActionView as Button).text = nativeAd.callToAction
-//        }
-//
-//        if (nativeAd.icon == null) {
-//            adView.iconView?.visibility = View.GONE
-//        } else {
-//            (adView.iconView as ImageView).setImageDrawable(
-//                nativeAd.icon?.drawable
-//            )
-//            adView.iconView?.visibility = View.VISIBLE
-//        }
-//
-//        if (nativeAd.advertiser == null) {
-//            adView.advertiserView?.visibility = View.INVISIBLE
-//        } else {
-//            (adView.advertiserView as TextView).text = nativeAd.advertiser
-//            adView.advertiserView?.visibility = View.VISIBLE
-//        }
-//
-//        // This method tells the Google Mobile Ads SDK that you have finished populating your
-//        // native ad view with this native ad.
-//        adView.setNativeAd(nativeAd)
-//
-//    }
-
-//    private fun loadScreenAdvertisement(adRequest: AdRequest) {
-//        AdLoad.loadScreenAdvertisement(this, "ca-app-pub-3940256099942544/1033173712", adRequest)
-//    }
+    @SuppressLint("SetTextI18n")
+    private fun timerUi(it :Int) {
+        val hh: String = DecimalFormat("00").format(it / 3600)
+        val mm: String = DecimalFormat("00").format(it % 3600 / 60)
+        val ss: String = DecimalFormat("00").format(it % 60)
+        txtTimer.text = "$hh:$mm:$ss"
+    }
 
     private fun initView() {
         frameLayoutTitle = findViewById(R.id.main_title)
@@ -256,7 +138,6 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
             0,
             DensityUtils.px2dp(StatusBarUtils.getStatusBarHeight(this).toFloat()) + 50, 0, 0
         )
-        timer = findViewById(R.id.timer)
         imgSwitch = findViewById(R.id.img_switch)
         txtConnect = findViewById(R.id.txt_connect)
         imgCountry = findViewById(R.id.img_country)
@@ -272,6 +153,7 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
         tvAgreement = laHomeMenu.findViewById(R.id.tv_agreement)
         tvShare = laHomeMenu.findViewById(R.id.tv_share)
         clSwitch = findViewById(R.id.cl_switch)
+        txtTimer = findViewById(R.id.txt_timer)
     }
 
     /**
@@ -315,9 +197,11 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
         }
         radioGroup.setOnClickListener {
             vpnSwitch()
+//            NetworkPing.cancel()
         }
         clSwitch.setOnClickListener {
             vpnSwitch()
+
         }
     }
 
@@ -338,6 +222,7 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
     /**
      * 开关状态
      */
+    @SuppressLint("UseCompatLoadingForDrawables")
     private fun setSwitchStatus() {
         if (state.name == "Connected") {
             radioButton0.setTextColor(getColor(R.color.white))
@@ -352,24 +237,6 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
             radioButton0.setTextColor(getColor(R.color.white))
             radioButton0.background = null
         }
-    }
-
-    /**
-     * 计时器设置
-     */
-    private fun timerSet() {
-        timer.base = SystemClock.elapsedRealtime()
-        val hour = ((SystemClock.elapsedRealtime() - timer.base) / 1000 / 60)
-        timer.format = "0$hour:%s"
-    }
-
-    /**
-     * 手动开启服务
-     */
-    private fun manuallyStartTheService() {
-        imgSwitch.playAnimation()
-        MmkvUtils.set(Constant.SLIDING, true)
-        startVpn()
     }
 
     /**
@@ -408,7 +275,6 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
         }
         DataStore.profileId = 1L
         isFrontDesk = true
-//        manuallyStartTheService()
         vpnSwitch()
     }
 
@@ -427,6 +293,7 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
     /**
      * 设置图标
      */
+    @SuppressLint("SetTextI18n")
     private fun settingsIcon(profileBean: ProfileBean.SafeLocation) {
         if (profileBean.bestServer == true) {
             tvLocation.text = Constant.FASTER_SERVER
@@ -478,12 +345,11 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
 
     private fun changeState(
         state: BaseService.State,
-        msg: String? = null,
         animate: Boolean = true
     ) {
-        Log.i("TAG", "changeState: --->$state---msg=$msg")
         setConnectionStatusText(state.name)
         this.state = state
+        MmkvUtils.set(Constant.TIMING_DATA, state.name)
         setSwitchStatus()
         stateListener?.invoke(state)
     }
@@ -491,6 +357,7 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
     /**
      * 设置连接状态文本
      */
+    @SuppressLint("SetTextI18n")
     private fun setConnectionStatusText(state: String) {
         when (state) {
             "Connecting" -> {
@@ -519,12 +386,7 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
      * 连接成功
      */
     private fun connectionSucceeded() {
-        if (rangeTime != 0f) {
-            timer.base = (timer.base + (SystemClock.elapsedRealtime() - rangeTime)).toLong()
-        } else {
-            timer.base = SystemClock.elapsedRealtime()
-        }
-        timer.start()
+        NetworkPing.start()
         jumpToTheResultPage(true)
     }
 
@@ -532,10 +394,8 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
      * 连接停止
      */
     private fun connectionStop() {
-        timer.stop()
-        //计数器置空
-        rangeTime = 0f
-        timer.base = SystemClock.elapsedRealtime()
+        NetworkPing.cancel()
+        txtTimer.text = "00:00:00"
     }
 
     /**
@@ -557,15 +417,18 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
     }
 
     override fun stateChanged(state: BaseService.State, profileName: String?, msg: String?) =
-        changeState(state, msg)
+        changeState(state)
 
-    override fun onServiceConnected(service: IShadowsocksService) = changeState(
-        try {
-            BaseService.State.values()[service.state]
-        } catch (_: RemoteException) {
-            BaseService.State.Idle
-        }
-    )
+    override fun onServiceConnected(service: IShadowsocksService) = run {
+        KLog.e("TAG", "changeState: --->${service.state}")
+        changeState(
+            try {
+                BaseService.State.values()[service.state]
+            } catch (_: RemoteException) {
+                BaseService.State.Idle
+            }
+        )
+    }
 
     override fun onPreferenceDataStoreChanged(store: PreferenceDataStore, key: String) {
         when (key) {
@@ -575,43 +438,6 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
             }
         }
     }
-
-    /**
-     * 插屏广告回调
-     */
-//    private fun plugInAdvertisementCallback() {
-//        mInterstitialAd?.fullScreenContentCallback = object : FullScreenContentCallback() {
-//            override fun onAdClicked() {
-//                // Called when a click is recorded for an ad.
-//                KLog.d("TAG", "Ad was clicked.")
-//            }
-//
-//            override fun onAdDismissedFullScreenContent() {
-//                // Called when ad is dismissed.
-//                isFrontDesk = true
-//                startVpn()
-//                mInterstitialAd = null
-//                loadScreenAdvertisement(adRequest)
-//            }
-//
-//            override fun onAdFailedToShowFullScreenContent(p0: AdError) {
-//                // Called when ad fails to show.
-//                KLog.e("TAG", "Ad failed to show fullscreen content.")
-//                mInterstitialAd = null
-//                loadScreenAdvertisement(adRequest)
-//            }
-//
-//            override fun onAdImpression() {
-//                // Called when an impression is recorded for an ad.
-//                KLog.d("TAG", "Ad recorded an impression.")
-//            }
-//
-//            override fun onAdShowedFullScreenContent() {
-//                // Called when ad is shown.
-//                KLog.d("TAG", "Ad showed fullscreen content.")
-//            }
-//        }
-//    }
 
     override fun onStart() {
         super.onStart()
@@ -631,8 +457,8 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
 
     override fun onDestroy() {
         super.onDestroy()
-        DataStore.publicStore.unregisterChangeListener(this)
-        connection.disconnect(this)
+//        DataStore.publicStore.unregisterChangeListener(this)
+//        connection.disconnect(this)
 //        currentNativeAd?.destroy()
     }
 
@@ -643,7 +469,6 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
 
     override fun onRetry() {
         finish()
-//        ToastUtils.toast(R.string.exit_procedure)
     }
 
     override fun onExit() {
