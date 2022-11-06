@@ -21,14 +21,10 @@ import com.demo.blackbutton.utils.StatusBarUtils
 import com.demo.blackbutton.widget.HorizontalProgressView
 import com.example.testdemo.utils.KLog
 import com.github.shadowsocks.bean.AroundFlowBean
-import com.google.android.gms.ads.interstitial.InterstitialAd
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.remoteconfig.ktx.remoteConfig
 import com.jeremyliao.liveeventbus.LiveEventBus
 import com.xuexiang.xutil.tip.ToastUtils
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import java.util.*
 import com.demo.blackbutton.utils.ActivityCollector
 import com.demo.blackbutton.utils.ActivityCollector.isActivityExist

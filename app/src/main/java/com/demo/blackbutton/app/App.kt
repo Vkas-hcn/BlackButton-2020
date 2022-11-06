@@ -3,7 +3,6 @@ package com.demo.blackbutton.app
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.ActivityManager
-import android.app.ActivityManager.RunningTaskInfo
 import android.app.Application
 import android.content.Context
 import android.content.Intent
@@ -18,9 +17,7 @@ import androidx.lifecycle.OnLifecycleEvent
 import androidx.lifecycle.ProcessLifecycleOwner
 import com.blankj.utilcode.util.ProcessUtils
 import com.demo.blackbutton.BuildConfig
-import androidx.lifecycle.lifecycleScope
 import com.demo.blackbutton.constant.Constant
-import com.demo.blackbutton.ui.ApplicationObserver
 import com.demo.blackbutton.ui.MainActivity
 import com.demo.blackbutton.ui.StartupActivity
 import com.demo.blackbutton.utils.*
