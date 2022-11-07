@@ -36,6 +36,12 @@ import com.xuexiang.xutil.common.ClickUtils
 import com.xuexiang.xutil.tip.ToastUtils
 import java.text.DecimalFormat
 import kotlinx.coroutines.*
+import com.demo.blackbutton.utils.Utils.checkDoubleClick
+
+import android.view.MotionEvent
+
+
+
 
 
 class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
@@ -411,6 +417,7 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
         if (canIJump) {
             val intent = Intent(this@MainActivity, ResultsActivity::class.java)
             intent.putExtra(Constant.CONNECTION_STATUS, flag)
+            intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)//如果存在就不创建，直接打开
             startActivity(intent)
             canIJump = false
         }

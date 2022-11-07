@@ -18,6 +18,7 @@ import android.graphics.PorterDuff;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
+import android.os.SystemClock;
 import android.text.TextUtils;
 import android.view.View;
 import android.view.ViewGroup;
@@ -481,6 +482,21 @@ public final class Utils {
         bestRoute.setBestServer(true);
         return bestRoute;
     }
+    /**
+     * 判断是否是快速点击
+     * */
+    private static long lastClickTime;
+    public static boolean checkDoubleClick() {
+        //点击时间
+        long clickTime = SystemClock.uptimeMillis();
+        //如果当前点击间隔小于500毫秒
+        if (lastClickTime >= clickTime - 500) {
+            return true;
+        }
+        //记录上次点击时间
+        lastClickTime = clickTime;
+        return false;
 
+    }
 }
 
