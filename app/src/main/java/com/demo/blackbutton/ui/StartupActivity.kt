@@ -14,10 +14,8 @@ import com.demo.blackbutton.R
 import com.demo.blackbutton.app.App
 import com.demo.blackbutton.bean.ProfileBean
 import com.demo.blackbutton.constant.Constant
-import com.demo.blackbutton.utils.JsonUtil
-import com.demo.blackbutton.utils.MmkvUtils
+import com.demo.blackbutton.utils.*
 import com.demo.blackbutton.utils.NetworkPing.findTheBestIp
-import com.demo.blackbutton.utils.StatusBarUtils
 import com.demo.blackbutton.widget.HorizontalProgressView
 import com.example.testdemo.utils.KLog
 import com.github.shadowsocks.bean.AroundFlowBean
@@ -25,9 +23,13 @@ import com.google.firebase.ktx.Firebase
 import com.google.firebase.remoteconfig.ktx.remoteConfig
 import com.jeremyliao.liveeventbus.LiveEventBus
 import com.xuexiang.xutil.tip.ToastUtils
+import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.util.*
-import com.demo.blackbutton.utils.ActivityCollector
 import com.demo.blackbutton.utils.ActivityCollector.isActivityExist
+import com.demo.blackbutton.utils.GetLocalData.getLocalAdData
 
 
 /**
@@ -43,13 +45,14 @@ class StartupActivity : AppCompatActivity(),
 
     // 绕流数据
     private lateinit var aroundFlowData: AroundFlowBean
+
+    @DelicateCoroutinesApi
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         StatusBarUtils.translucent(this)
         setContentView(R.layout.activity_startup)
         supportActionBar?.hide()
         ActivityCollector.addActivity(this, javaClass)
-        initLiveBus()
         initView()
         initParam()
     }
@@ -69,28 +72,6 @@ class StartupActivity : AppCompatActivity(),
         getFirebaseData()
     }
 
-    private fun initLiveBus() {
-        LiveEventBus
-            .get(Constant.OPEN_AD, Boolean::class.java)
-            .observeForever {
-                if (isActivityExist(this.javaClass)) {
-                    countDownTimer.cancel()
-                    val application = application as? App
-                    application?.showAdIfAvailable(
-                        this@StartupActivity,
-                        object : App.OnShowAdCompleteListener {
-                            override fun onShowAdComplete() {
-                                if (whetherReturnCurrentPage) {
-                                    finish()
-                                } else {
-                                    jumpPage()
-                                }
-                            }
-                        })
-                }
-            }
-    }
-
     /**
      * 获取Firebase数据
      */
@@ -103,12 +84,8 @@ class StartupActivity : AppCompatActivity(),
             auth.fetchAndActivate().addOnSuccessListener {
                 ToastUtils.toast("fireBase Connection succeeded")
                 MmkvUtils.set(Constant.AROUND_FLOW_DATA, auth.getString("aroundFlowData"))
-                MmkvUtils.set(Constant.PROFILE_DATA, auth.getString("profileData"))
+                MmkvUtils.set(Constant.ADVERTISING_DATA, auth.getString("advertisingData"))
             }.addOnCompleteListener {
-//                lifecycleScope.launch(Dispatchers.Main) {
-//                    delay(2000L)
-//                    jumpPage()
-//                }
                 createTimer(10L)
             }
         }
@@ -122,7 +99,7 @@ class StartupActivity : AppCompatActivity(),
      */
     private fun createTimer(seconds: Long) {
         val application = application as? App
-        application?.AD_UNIT_ID = "ca-app-pub-3940256099942544/3419835294"
+        application?.AD_UNIT_ID = getLocalAdData().open_ad[0].adUnitID.toString()
         application?.AppOpenAdManager()?.appOpenAd.let {
             if (it != null) {
                 it.show(this)

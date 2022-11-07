@@ -9,6 +9,8 @@ package com.demo.blackbutton.constant
 object Constant {
     //开屏广告
     const val OPEN_AD = "OPEN_AD"
+    //计时器数据
+    const val TIMER_DATA = "TIMER_DATA"
     //回到当前页
     const val RETURN_CURRENT_PAGE = "RETURN_CURRENT_PAGE"
     //服务器信息
@@ -43,5 +45,7 @@ object Constant {
     const val MAILBOX_ADDRESS="vkas@qq.com"
     // 插屏广告缓存
     const val PLUG_ADVERTISEMENT_CACHE="plugAdvertisementCache"
+    // 广告数据
+    const val ADVERTISING_DATA="advertisingData"
 
 }

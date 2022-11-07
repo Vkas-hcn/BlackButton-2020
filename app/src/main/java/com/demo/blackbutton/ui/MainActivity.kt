@@ -137,6 +137,12 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
                 mInterstitialAd = it
                 plugInAdvertisementCallback()
             }
+        // 更新计时器
+        LiveEventBus
+            .get(Constant.TIMER_DATA, Int::class.java)
+            .observeForever {
+                timerUi(it)
+            }
     }
 
     private fun initAd() {

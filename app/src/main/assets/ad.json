@@ -1,0 +1,32 @@
+{
+  "open_ad": [
+    {
+      "adUnitID": "ca-app-pub-3940256099942544/3419835294",
+      "weight": 1
+    },
+    {
+      "adUnitID": "ca-app-pub-3940256099942544/3419835294",
+      "weight": 2
+    }
+  ],
+  "native_ad": [
+    {
+      "adUnitID": "ca-app-pub-3940256099942544/2247696110",
+      "weight": 1
+    },
+    {
+      "adUnitID": "ca-app-pub-3940256099942544/2247696110",
+      "weight": 2
+    }
+  ],
+  "screen_ad": [
+    {
+      "adUnitID": "ca-app-pub-3940256099942544/1033173712",
+      "weight": 1
+    },
+    {
+      "adUnitID": "ca-app-pub-3940256099942544/1033173712",
+      "weight": 2
+    }
+  ]
+}

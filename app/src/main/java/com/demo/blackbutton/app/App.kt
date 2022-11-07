@@ -63,6 +63,7 @@ class App : Application(), androidx.work.Configuration.Provider by Core,
             KLog.init(BuildConfig.DEBUG)
         }
         Core.init(this, MainActivity::class)
+        NetworkPing.getTimerThread()
     }
 
     /** LifecycleObserver method that shows the app open ad when the app moves to foreground. */
@@ -92,10 +93,6 @@ class App : Application(), androidx.work.Configuration.Provider by Core,
      */
     private fun jumpPage() {
         isRunningForegroundToApp1(this, StartupActivity::class.java)
-//        val intent = Intent(this, StartupActivity::class.java)
-//        intent.putExtra(Constant.RETURN_CURRENT_PAGE, true)
-//        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-//        startActivity(intent)
     }
 
     @SuppressLint("NewApi")
@@ -209,8 +206,6 @@ class App : Application(), androidx.work.Configuration.Provider by Core,
                         appOpenAd = ad
                         isLoadingAd = false
                         loadTime = Date().time
-                        LiveEventBus.get<Boolean>(Constant.OPEN_AD)
-                            .post(true)
                         Log.d(LOG_TAG, "onAdLoaded.")
                         Toast.makeText(context, "onAdLoaded", Toast.LENGTH_SHORT).show()
                     }
