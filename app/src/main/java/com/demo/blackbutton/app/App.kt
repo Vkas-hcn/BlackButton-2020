@@ -17,6 +17,7 @@ import androidx.lifecycle.OnLifecycleEvent
 import androidx.lifecycle.ProcessLifecycleOwner
 import com.blankj.utilcode.util.ProcessUtils
 import com.demo.blackbutton.BuildConfig
+import com.demo.blackbutton.bean.ProfileBean
 import com.demo.blackbutton.constant.Constant
 import com.demo.blackbutton.ui.MainActivity
 import com.demo.blackbutton.ui.StartupActivity
@@ -38,7 +39,7 @@ class App : Application(), androidx.work.Configuration.Provider by Core,
     private lateinit var appOpenAdManager: AppOpenAdManager
     private var currentActivity: Activity? = null
     var AD_UNIT_ID = ""
-    private val LOG_TAG = "BlackButton"
+    private val LOG_TAG = "TAG"
 
     // 是否进入后台
     private var whetherBackground = false
@@ -47,9 +48,8 @@ class App : Application(), androidx.work.Configuration.Provider by Core,
         registerActivityLifecycleCallbacks(this)
         MobileAds.initialize(this) {}
         ProcessLifecycleOwner.get().lifecycle.addObserver(this)
-//        ProcessLifecycleOwner.get().lifecycle.addObserver(ApplicationObserver())
-
         appOpenAdManager = AppOpenAdManager()
+
         MMKV.initialize(this)
         if (ProcessUtils.isMainProcess()) {
             AppCompatDelegate.setCompatVectorFromResourcesEnabled(true)
@@ -69,13 +69,10 @@ class App : Application(), androidx.work.Configuration.Provider by Core,
     /** LifecycleObserver method that shows the app open ad when the app moves to foreground. */
     @OnLifecycleEvent(Lifecycle.Event.ON_START)
     fun onMoveToForeground() {
-        KLog.e("TAG", "ON_START")
+        KLog.e("TAG", "ON_START=$whetherBackground")
         if (whetherBackground) {
             jumpPage()
             whetherBackground = false
-        } else {
-            // Show the ad (if available) when the app moves to foreground.
-            currentActivity?.let { appOpenAdManager.showAdIfAvailable(it) }
         }
     }
 
@@ -92,32 +89,10 @@ class App : Application(), androidx.work.Configuration.Provider by Core,
      * 跳转页面
      */
     private fun jumpPage() {
-        isRunningForegroundToApp1(this, StartupActivity::class.java)
-    }
-
-    @SuppressLint("NewApi")
-    fun isRunningForegroundToApp1(context: Context, Class: Class<*>?) {
-        val activityManager = context.getSystemService(ACTIVITY_SERVICE) as ActivityManager
-        val taskInfoList = activityManager.getRunningTasks(20)
-        /**枚举进程 */
-        for (taskInfo in taskInfoList) {
-            //*找到本应用的 task，并将它切换到前台
-            if (taskInfo.baseActivity!!.packageName == context.packageName) {
-                Log.e("timerTask", "timerTask  pid " + taskInfo.id)
-                Log.e("timerTask", "timerTask  processName " + taskInfo.topActivity!!.packageName)
-                Log.e("timerTask", "timerTask  getPackageName " + context.packageName)
-                activityManager.moveTaskToFront(taskInfo.id, ActivityManager.MOVE_TASK_WITH_HOME)
-                val intent = Intent(context, Class)
-                intent.addCategory(Intent.CATEGORY_LAUNCHER)
-                intent.putExtra(Constant.RETURN_CURRENT_PAGE, true)
-
-                intent.action = Intent.ACTION_MAIN
-                intent.flags =
-                    Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED
-                context.startActivity(intent)
-                break
-            }
-        }
+        val intent = Intent(this, StartupActivity::class.java)
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        intent.putExtra(Constant.RETURN_CURRENT_PAGE, true)
+        startActivity(intent)
     }
 
     /** ActivityLifecycleCallback methods. */
@@ -149,18 +124,6 @@ class App : Application(), androidx.work.Configuration.Provider by Core,
     }
 
     /**
-     * Shows an app open ad.
-     *
-     * @param activity the activity that shows the app open ad
-     * @param onShowAdCompleteListener the listener to be notified when an app open ad is complete
-     */
-    fun showAdIfAvailable(activity: Activity, onShowAdCompleteListener: OnShowAdCompleteListener) {
-        // We wrap the showAdIfAvailable to enforce that other classes only interact with MyApplication
-        // class.
-        appOpenAdManager.showAdIfAvailable(activity, onShowAdCompleteListener)
-    }
-
-    /**
      * Interface definition for a callback to be invoked when an app open ad is complete (i.e.
      * dismissed or fails to show).
      */
@@ -186,6 +149,7 @@ class App : Application(), androidx.work.Configuration.Provider by Core,
         fun loadAd(context: Context) {
             // Do not load ad if there is an unused ad or one is already loading.
             if (isLoadingAd || isAdAvailable()) {
+
                 return
             }
 
@@ -206,7 +170,9 @@ class App : Application(), androidx.work.Configuration.Provider by Core,
                         appOpenAd = ad
                         isLoadingAd = false
                         loadTime = Date().time
-                        Log.d(LOG_TAG, "onAdLoaded.")
+                        KLog.e(LOG_TAG, "onAdLoaded.")
+//                        LiveEventBus.get<AppOpenAd>(Constant.OPEN_ADVERTISEMENT_CACHE)
+//                            .post(appOpenAd)
                         Toast.makeText(context, "onAdLoaded", Toast.LENGTH_SHORT).show()
                     }
 
@@ -217,13 +183,12 @@ class App : Application(), androidx.work.Configuration.Provider by Core,
                      */
                     override fun onAdFailedToLoad(loadAdError: LoadAdError) {
                         isLoadingAd = false
-                        Log.d(LOG_TAG, "onAdFailedToLoad: " + loadAdError.message)
+                        KLog.e(LOG_TAG, "onAdFailedToLoad: " + loadAdError.message)
                         Toast.makeText(context, "onAdFailedToLoad", Toast.LENGTH_SHORT).show()
                     }
                 }
             )
         }
-
         /** Check if ad was loaded more than n hours ago. */
         private fun wasLoadTimeLessThanNHoursAgo(numHours: Long): Boolean {
             val dateDifference: Long = Date().time - loadTime
@@ -250,6 +215,7 @@ class App : Application(), androidx.work.Configuration.Provider by Core,
                 object : OnShowAdCompleteListener {
                     override fun onShowAdComplete() {
                         // Empty because the user will go back to the activity that shows the ad.
+                        KLog.e("TAG", "Show the ad if one isn't already showing.")
                     }
                 }
             )
@@ -267,19 +233,18 @@ class App : Application(), androidx.work.Configuration.Provider by Core,
         ) {
             // If the app open ad is already showing, do not show the ad again.
             if (isShowingAd) {
-                Log.d(LOG_TAG, "The app open ad is already showing.")
+                KLog.e(LOG_TAG, "The app open ad is already showing.")
                 return
             }
 
             // If the app open ad is not available yet, invoke the callback then load the ad.
             if (!isAdAvailable()) {
-                Log.d(LOG_TAG, "The app open ad is not ready yet.")
-//                onShowAdCompleteListener.onShowAdComplete()
+                KLog.e(LOG_TAG, "The app open ad is not ready yet.")
                 loadAd(activity)
                 return
             }
 
-            Log.d(LOG_TAG, "Will show ad.")
+            KLog.e(LOG_TAG, "Will show ad.")
 
             appOpenAd!!.fullScreenContentCallback = object : FullScreenContentCallback() {
                 /** Called when full screen content is dismissed. */
@@ -287,7 +252,7 @@ class App : Application(), androidx.work.Configuration.Provider by Core,
                     // Set the reference to null so isAdAvailable() returns false.
                     appOpenAd = null
                     isShowingAd = false
-                    Log.d(LOG_TAG, "onAdDismissedFullScreenContent.")
+                    KLog.e(LOG_TAG, "onAdDismissedFullScreenContent.")
                     Toast.makeText(activity, "onAdDismissedFullScreenContent", Toast.LENGTH_SHORT)
                         .show()
 
@@ -299,7 +264,7 @@ class App : Application(), androidx.work.Configuration.Provider by Core,
                 override fun onAdFailedToShowFullScreenContent(adError: AdError) {
                     appOpenAd = null
                     isShowingAd = false
-                    Log.d(LOG_TAG, "onAdFailedToShowFullScreenContent: " + adError.message)
+                    KLog.e(LOG_TAG, "onAdFailedToShowFullScreenContent: " + adError.message)
                     Toast.makeText(
                         activity,
                         "onAdFailedToShowFullScreenContent",
@@ -312,7 +277,7 @@ class App : Application(), androidx.work.Configuration.Provider by Core,
 
                 /** Called when fullscreen content is shown. */
                 override fun onAdShowedFullScreenContent() {
-                    Log.d(LOG_TAG, "onAdShowedFullScreenContent.")
+                    KLog.e(LOG_TAG, "onAdShowedFullScreenContent.")
                     Toast.makeText(activity, "onAdShowedFullScreenContent", Toast.LENGTH_SHORT)
                         .show()
                 }

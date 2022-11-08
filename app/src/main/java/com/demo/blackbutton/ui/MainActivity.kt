@@ -1,7 +1,9 @@
 package com.demo.blackbutton.ui
 
 import android.annotation.SuppressLint
+import android.content.Context
 import android.content.Intent
+import android.media.AudioManager
 import android.net.Uri
 import android.os.*
 import android.util.Log
@@ -15,11 +17,13 @@ import androidx.preference.PreferenceDataStore
 import com.airbnb.lottie.LottieAnimationView
 import com.demo.blackbutton.R
 import com.demo.blackbutton.ad.AdLoad
+import com.demo.blackbutton.app.App
 import com.demo.blackbutton.bean.ProfileBean
 import com.demo.blackbutton.constant.Constant
 import com.demo.blackbutton.ui.agreement.AgreementWebView
 import com.demo.blackbutton.ui.servicelist.ServiceListActivity
 import com.demo.blackbutton.utils.*
+import com.demo.blackbutton.utils.ObjectSaveUtils.getObject
 import com.demo.blackbutton.utils.Utils.FlagConversion
 import com.demo.blackbutton.widget.SlidingMenu
 import com.example.testdemo.utils.KLog
@@ -53,6 +57,7 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
         var stateListener: ((BaseService.State) -> Unit)? = null
     }
 
+    private  val LOG_TAG = "ad-log"
     private lateinit var frameLayoutTitle: FrameLayout
     private lateinit var rightTitle: ImageView
     private lateinit var navigation: ImageView
@@ -73,9 +78,7 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
 
     // 是否能跳转
     private var canIJump = false
-
     private var mInterstitialAd: InterstitialAd? = null
-    private lateinit var mNativeAds: AdLoader.Builder
     private lateinit var adRequest: AdRequest
     var state = BaseService.State.Idle
     private val connection = ShadowsocksConnection(true)
@@ -88,6 +91,9 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
     private lateinit var ad_frame: FrameLayout
     private lateinit var imgAdFrame: ImageView
     var currentNativeAd: NativeAd? = null
+    private var nativeAdIndex: Int = 0
+
+    private var screenAdIndex: Int = 0
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         with(resources.displayMetrics) {
@@ -99,8 +105,8 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
         setContentView(R.layout.activity_main)
         initParam()
         initView()
-        initAd()
         initNativeAds()
+        initScreenAd()
         clickEvent()
         initConnectionServer()
         initLiveBus()
@@ -145,34 +151,23 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
             }
     }
 
-    private fun initAd() {
+    private fun initScreenAd() {
         adRequest = AdRequest.Builder().build()
         loadScreenAdvertisement(adRequest)
-        // 更新计时器
-        LiveEventBus
-            .get(Constant.TIMER_DATA, Int::class.java)
-            .observeForever {
-                timerUi(it)
-            }
     }
 
     /**
-     *
+     *home native
      */
     private fun initNativeAds() {
-        mNativeAds = AdLoader.Builder(this, "ca-app-pub-3940256099942544/2247696110")
-        mNativeAds.forNativeAd { nativeAd ->
-            // OnUnifiedNativeAdLoadedListener implementation.
-            // If this callback occurs after the activity is destroyed, you must call
-            // destroy and return or you may get a memory leak.
+        val nativeAds = AdLoad.homeNativeAds
+        nativeAds.forNativeAd { nativeAd ->
             var activityDestroyed = false
             activityDestroyed = isDestroyed
             if (activityDestroyed || isFinishing || isChangingConfigurations) {
                 nativeAd.destroy()
                 return@forNativeAd
             }
-            // You must call destroy on old ads when you are done with them,
-            // otherwise you will have a memory leak.
             currentNativeAd?.destroy()
             currentNativeAd = nativeAd
             val adView = layoutInflater
@@ -192,27 +187,28 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
             .setMediaAspectRatio(NativeAdOptions.NATIVE_MEDIA_ASPECT_RATIO_PORTRAIT)
             .build()
 
-        mNativeAds.withNativeAdOptions(adOptions)
-        val adLoader = mNativeAds.withAdListener(object : AdListener() {
+        nativeAds.withNativeAdOptions(adOptions)
+        val adLoader = nativeAds.withAdListener(object : AdListener() {
             override fun onAdFailedToLoad(loadAdError: LoadAdError) {
                 val error =
                     """
            domain: ${loadAdError.domain}, code: ${loadAdError.code}, message: ${loadAdError.message}
           """"
-                Toast.makeText(
-                    this@MainActivity, "Failed to load native ad with error $error",
-                    Toast.LENGTH_SHORT
-                ).show()
+                KLog.d(LOG_TAG, "home---onAdLoaded-Failed=$error")
+            }
+
+            override fun onAdLoaded() {
+                super.onAdLoaded()
+                KLog.d(LOG_TAG, "home---onAdLoaded-finish")
             }
         }).build()
-
         adLoader.loadAd(AdRequest.Builder().build())
+        KLog.d(LOG_TAG, "home----show")
     }
 
     private fun populateNativeAdView(nativeAd: NativeAd, adView: NativeAdView) {
         // Set the media view.
         adView.mediaView = adView.findViewById(R.id.ad_media)
-
         // Set other ad assets.
         adView.headlineView = adView.findViewById(R.id.ad_headline)
         adView.bodyView = adView.findViewById(R.id.ad_body)
@@ -220,7 +216,10 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
         adView.iconView = adView.findViewById(R.id.ad_app_icon)
         adView.advertiserView = adView.findViewById(R.id.ad_advertiser)
         (adView.headlineView as TextView).text = nativeAd.headline
-        nativeAd.mediaContent?.let { adView.mediaView?.apply { setImageScaleType(ImageView.ScaleType.CENTER_CROP) }?.setMediaContent(it) }
+        nativeAd.mediaContent?.let {
+            adView.mediaView?.apply { setImageScaleType(ImageView.ScaleType.CENTER_CROP) }
+                ?.setMediaContent(it)
+        }
 
         // These assets aren't guaranteed to be in every UnifiedNativeAd, so it's important to
         // check before trying to display them.
@@ -274,10 +273,17 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
     }
 
     private fun loadScreenAdvertisement(adRequest: AdRequest) {
-        AdLoad.loadScreenAdvertisement(this, "ca-app-pub-3940256099942544/1033173712", adRequest)
+        val id = GetLocalData.getAdId(GetLocalData.getLocalAdData().screen_ad, screenAdIndex)
+        if (id == "") {
+            return
+        }
+        KLog.d(LOG_TAG,"connect---adUnitId=${id};weight=${GetLocalData.getLocalAdData().open_ad[screenAdIndex].weight}")
+
+        AdLoad.loadScreenAdvertisement(this, id, adRequest)
     }
+
     @SuppressLint("SetTextI18n")
-    private fun timerUi(it :Int) {
+    private fun timerUi(it: Int) {
         val hh: String = DecimalFormat("00").format(it / 3600)
         val mm: String = DecimalFormat("00").format(it % 3600 / 60)
         val ss: String = DecimalFormat("00").format(it % 60)
@@ -349,22 +355,57 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
                 startActivity(intent)
             }
         }
-        radioGroup.setOnClickListener {
-            vpnSwitch()
-        }
         clSwitch.setOnClickListener {
             vpnSwitch()
         }
+        radioGroup.setOnClickListener {
+            vpnSwitch()
+        }
     }
-
+    /**
+     * 获取结果页原生广告Id
+     */
+    private fun getResultNativeAdId() {
+        KLog.d(LOG_TAG,"result--adUnitId=${
+            GetLocalData.getAdId(
+                GetLocalData.getLocalAdData().native_ad,
+                nativeAdIndex
+            )
+        };weight=${GetLocalData.getLocalAdData().native_ad[nativeAdIndex].weight}")
+        loadNativeAds(GetLocalData.getAdId(GetLocalData.getLocalAdData().native_ad, nativeAdIndex))
+    }
+    /**
+     * 加载原生广告
+     */
+    private fun loadNativeAds(adUnitInt: String?) {
+        AdLoad.loadResultNativeAds(applicationContext, adUnitInt!!)
+    }
     /**
      * vpnSwitch
      */
     private fun vpnSwitch() {
+        getResultNativeAdId()
         canIJump = true
         imgSwitch.playAnimation()
         MmkvUtils.set(Constant.SLIDING, true)
-        mInterstitialAd?.show(this)
+        lifecycleScope.launch {
+            try {
+                withTimeout(10000L) {
+                    while (isActive) {
+                        delay(1000L)
+                        if(mInterstitialAd!=null){
+                            mInterstitialAd?.show(this@MainActivity)
+                            cancel()
+                        }
+                        KLog.e("TAG", "while (vpnSwitch)")
+                    }
+                }
+            } catch (e: TimeoutCancellationException) {
+                KLog.e("TimeoutCancellationException I'm sleeping $e")
+                isFrontDesk = true
+                startVpn()
+            }
+        }
     }
 
     /**
@@ -423,7 +464,6 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
         }
         DataStore.profileId = 1L
         isFrontDesk = true
-//        manuallyStartTheService()
         vpnSwitch()
     }
 
@@ -595,7 +635,7 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
         mInterstitialAd?.fullScreenContentCallback = object : FullScreenContentCallback() {
             override fun onAdClicked() {
                 // Called when a click is recorded for an ad.
-                KLog.d("TAG", "Ad was clicked.")
+                KLog.e("TAG", "Ad was clicked.")
             }
 
             override fun onAdDismissedFullScreenContent() {
@@ -610,17 +650,19 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
                 // Called when ad fails to show.
                 KLog.e("TAG", "Ad failed to show fullscreen content.")
                 mInterstitialAd = null
+                screenAdIndex++
                 loadScreenAdvertisement(adRequest)
             }
 
             override fun onAdImpression() {
                 // Called when an impression is recorded for an ad.
-                KLog.d("TAG", "Ad recorded an impression.")
+                KLog.e("TAG", "Ad recorded an impression.")
             }
 
             override fun onAdShowedFullScreenContent() {
+                mInterstitialAd =null
                 // Called when ad is shown.
-                KLog.d("TAG", "Ad showed fullscreen content.")
+                KLog.d(LOG_TAG, "connect----show")
             }
         }
     }
@@ -652,7 +694,6 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
         super.onPause()
         isFrontDesk = false
     }
-
     override fun onRetry() {
         finish()
 //        ToastUtils.toast(R.string.exit_procedure)

@@ -43,8 +43,14 @@ object Constant {
     const val PRIVACY_AGREEMENT="https://www.baidu.com/"
     // email
     const val MAILBOX_ADDRESS="vkas@qq.com"
+    // 原生广告缓存
+    const val NATIVE_ADVERTISEMENT_CACHE="nativeAdvertisementCache"
     // 插屏广告缓存
     const val PLUG_ADVERTISEMENT_CACHE="plugAdvertisementCache"
+    // 返回插屏广告缓存
+    const val BACK_PLUG_ADVERTISEMENT_CACHE="backPlugAdvertisementCache"
+    // 开屏广告缓存
+    const val OPEN_ADVERTISEMENT_CACHE="openAdvertisementCache"
     // 广告数据
     const val ADVERTISING_DATA="advertisingData"
 

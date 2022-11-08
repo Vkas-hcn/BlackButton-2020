@@ -17,7 +17,7 @@
         <activity
             android:name=".ui.StartupActivity"
             android:exported="true"
-            android:launchMode="singleTask"
+            android:launchMode="singleTop"
             android:theme="@style/Theme.BlackButton">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

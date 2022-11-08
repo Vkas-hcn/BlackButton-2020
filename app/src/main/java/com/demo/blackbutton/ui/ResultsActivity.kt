@@ -5,9 +5,12 @@ import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import com.demo.blackbutton.R
+import com.demo.blackbutton.ad.AdLoad
 import com.demo.blackbutton.constant.Constant
 import com.demo.blackbutton.utils.DensityUtils
+import com.demo.blackbutton.utils.GetLocalData
 import com.demo.blackbutton.utils.StatusBarUtils
+import com.example.testdemo.utils.KLog
 import com.google.android.gms.ads.*
 import com.google.android.gms.ads.interstitial.InterstitialAd
 import com.google.android.gms.ads.nativead.NativeAd
@@ -16,6 +19,7 @@ import com.google.android.gms.ads.nativead.NativeAdView
 import com.xuexiang.xutil.common.ClickUtils
 
 class ResultsActivity : AppCompatActivity(){
+    private  val LOG_TAG = "ad-log"
     private lateinit var frameLayoutTitle: FrameLayout
     private lateinit var blackTitle: ImageView
     private lateinit var imgTitle: ImageView
@@ -77,19 +81,14 @@ class ResultsActivity : AppCompatActivity(){
      * 初始化原生广告
      */
     private fun initNativeAds() {
-        mNativeAds = AdLoader.Builder(this, "ca-app-pub-3940256099942544/2247696110")
+        mNativeAds = AdLoad.resultNativeAds
         mNativeAds.forNativeAd { nativeAd ->
-            // OnUnifiedNativeAdLoadedListener implementation.
-            // If this callback occurs after the activity is destroyed, you must call
-            // destroy and return or you may get a memory leak.
             var activityDestroyed = false
             activityDestroyed = isDestroyed
             if (activityDestroyed || isFinishing || isChangingConfigurations) {
                 nativeAd.destroy()
                 return@forNativeAd
             }
-            // You must call destroy on old ads when you are done with them,
-            // otherwise you will have a memory leak.
             currentNativeAd?.destroy()
             currentNativeAd = nativeAd
             val adView = layoutInflater
@@ -116,14 +115,17 @@ class ResultsActivity : AppCompatActivity(){
                     """
            domain: ${loadAdError.domain}, code: ${loadAdError.code}, message: ${loadAdError.message}
           """"
-                Toast.makeText(
-                    this@ResultsActivity, "Failed to load native ad with error $error",
-                    Toast.LENGTH_SHORT
-                ).show()
+                KLog.d(LOG_TAG, "result---onAdLoaded-Failed=$error")
+            }
+
+            override fun onAdLoaded() {
+                super.onAdLoaded()
+                KLog.d(LOG_TAG, "result---onAdLoaded-finish")
+
             }
         }).build()
-
         adLoader.loadAd(AdRequest.Builder().build())
+        KLog.d(LOG_TAG, "result----show")
     }
 
     private fun populateNativeAdView(nativeAd: NativeAd, adView: NativeAdView) {

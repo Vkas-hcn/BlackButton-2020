@@ -1,20 +1,22 @@
 package com.demo.blackbutton.ui
 
+import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.os.CountDownTimer
-import android.os.Looper
 import android.util.Log
 import android.view.View
-import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.demo.blackbutton.BuildConfig
 import com.demo.blackbutton.R
+import com.demo.blackbutton.ad.AdLoad
 import com.demo.blackbutton.app.App
-import com.demo.blackbutton.bean.ProfileBean
 import com.demo.blackbutton.constant.Constant
 import com.demo.blackbutton.utils.*
+import com.demo.blackbutton.utils.GetLocalData.getAdId
 import com.demo.blackbutton.utils.NetworkPing.findTheBestIp
 import com.demo.blackbutton.widget.HorizontalProgressView
 import com.example.testdemo.utils.KLog
@@ -23,13 +25,14 @@ import com.google.firebase.ktx.Firebase
 import com.google.firebase.remoteconfig.ktx.remoteConfig
 import com.jeremyliao.liveeventbus.LiveEventBus
 import com.xuexiang.xutil.tip.ToastUtils
-import kotlinx.coroutines.DelicateCoroutinesApi
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import java.util.*
-import com.demo.blackbutton.utils.ActivityCollector.isActivityExist
 import com.demo.blackbutton.utils.GetLocalData.getLocalAdData
+import com.google.android.gms.ads.AdError
+import com.google.android.gms.ads.AdRequest
+import com.google.android.gms.ads.FullScreenContentCallback
+import com.google.android.gms.ads.LoadAdError
+import com.google.android.gms.ads.appopen.AppOpenAd
+import kotlinx.coroutines.*
 
 
 /**
@@ -39,12 +42,17 @@ class StartupActivity : AppCompatActivity(),
     HorizontalProgressView.HorizontalProgressUpdateListener {
     private var whetherReturnCurrentPage: Boolean = false
     private lateinit var horizontalProgressView: HorizontalProgressView
-    private var secondsRemaining: Long = 0L
-    private val LOG_TAG = "BlackButton"
-    private lateinit var countDownTimer: CountDownTimer
-
+    private val LOG_TAG = "ad-log"
     // 绕流数据
     private lateinit var aroundFlowData: AroundFlowBean
+    private var appOpenAd: AppOpenAd? = null
+    private var isLoadingAds = false
+    var isShowingAd = false
+
+    /** Keep track of the time an app open ad is loaded to ensure you don't show an expired ad. */
+    private var loadTime: Long = 0
+    private var openAdIndex: Int = 0
+    private var nativeAdIndex: Int = 0
 
     @DelicateCoroutinesApi
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -53,8 +61,9 @@ class StartupActivity : AppCompatActivity(),
         setContentView(R.layout.activity_startup)
         supportActionBar?.hide()
         ActivityCollector.addActivity(this, javaClass)
-        initView()
         initParam()
+        initView()
+        initLiveBus()
     }
 
     /**
@@ -70,14 +79,33 @@ class StartupActivity : AppCompatActivity(),
         horizontalProgressView.startProgressAnimation()
         aroundFlowData = AroundFlowBean()
         getFirebaseData()
+
+    }
+
+    private fun initLiveBus() {
+//        LiveEventBus
+//            .get(Constant.OPEN_ADVERTISEMENT_CACHE, AppOpenAd::class.java)
+//            .observeForever {
+//                appOpenAd = it
+//            }
+    }
+
+    /**
+     * 获取原生广告Id
+     */
+    private fun getNativeAdId() {
+        KLog.d(LOG_TAG,"home--adUnitId=${getAdId(getLocalAdData().native_ad,nativeAdIndex)};weight=${getLocalAdData().native_ad[nativeAdIndex].weight}")
+        loadNativeAds(getAdId(getLocalAdData().native_ad,nativeAdIndex))
     }
 
     /**
      * 获取Firebase数据
      */
     private fun getFirebaseData() {
+        KLog.d("ad-log","ad.json=${JsonUtil.toJSONObject(getLocalAdData())}")
         if (BuildConfig.DEBUG) {
-            createTimer(10L)
+            loadOpenScreenAd()
+            getNativeAdId()
             return
         } else {
             val auth = Firebase.remoteConfig
@@ -86,59 +114,17 @@ class StartupActivity : AppCompatActivity(),
                 MmkvUtils.set(Constant.AROUND_FLOW_DATA, auth.getString("aroundFlowData"))
                 MmkvUtils.set(Constant.ADVERTISING_DATA, auth.getString("advertisingData"))
             }.addOnCompleteListener {
-                createTimer(10L)
+                loadOpenScreenAd()
+                getNativeAdId()
             }
         }
     }
 
-
     /**
-     * Create the countdown timer, which counts down to zero and show the app open ad.
-     *
-     * @param seconds the number of seconds that the timer counts down from
+     * 加载原生广告
      */
-    private fun createTimer(seconds: Long) {
-        val application = application as? App
-        application?.AD_UNIT_ID = getLocalAdData().open_ad[0].adUnitID.toString()
-        application?.AppOpenAdManager()?.appOpenAd.let {
-            if (it != null) {
-                it.show(this)
-                return
-            }
-        }
-
-        KLog.e("TAG", "AD_UNIT_ID")
-        countDownTimer = object : CountDownTimer(seconds * 1000, 1000) {
-            override fun onTick(millisUntilFinished: Long) {
-                secondsRemaining = millisUntilFinished / 1000 + 1
-            }
-
-            override fun onFinish() {
-                secondsRemaining = 0
-
-                // If the application is not an instance of MyApplication, log an error message and
-                // start the MainActivity without showing the app open ad.
-                if (application == null) {
-                    Log.e(LOG_TAG, "Failed to cast application to MyApplication.")
-                    jumpPage()
-                    return
-                }
-
-                // Show the app open ad.
-                application.showAdIfAvailable(
-                    this@StartupActivity,
-                    object : App.OnShowAdCompleteListener {
-                        override fun onShowAdComplete() {
-                            if (whetherReturnCurrentPage) {
-                                finish()
-                            } else {
-                                jumpPage()
-                            }
-                        }
-                    })
-            }
-        }
-        countDownTimer.start()
+    private fun loadNativeAds(adUnitInt: String?) {
+        AdLoad.loadHomeNativeAds(applicationContext, adUnitInt!!)
     }
 
     /**
@@ -151,21 +137,6 @@ class StartupActivity : AppCompatActivity(),
         MmkvUtils.set(Constant.BEST_SERVICE_DATA, dataJson)
         startActivity(intent)
         finish()
-    }
-
-    //    /**
-//     * 回到当前页面
-//     */
-//    private fun backToTheCurrentPage() {
-//        val intent = Intent(this@StartupActivity, MainActivity::class.java)
-//        val bestData = findTheBestIp()
-//        val dataJson = JsonUtil.toJson(bestData)
-//        MmkvUtils.set(Constant.BEST_SERVICE_DATA, dataJson)
-//        startActivity(intent)
-//        finish()
-//    }
-    override fun onStop() {
-        super.onStop()
     }
 
     override fun onDestroy() {
@@ -183,4 +154,147 @@ class StartupActivity : AppCompatActivity(),
 
     override fun onHorizontalProgressFinished(view: View?) {
     }
+
+    /**
+     * 加载开屏广告
+     */
+    private fun loadOpenScreenAd() {
+        KLog.e(LOG_TAG, "loadOpenScreenAd=$appOpenAd")
+        if(appOpenAd!=null){
+            lifecycleScope.launch {
+                delay(2000L)
+                showAdIfAvailable(this@StartupActivity)
+            }
+            return
+        }
+        lifecycleScope.launch {
+            try {
+                withTimeout(10000L) {
+                    loadAd(this@StartupActivity)
+                    delay(2000L)
+                    while (isActive){
+                        showAdIfAvailable(this@StartupActivity)
+                        delay(1000L)
+                        KLog.e("TAG","while (isActive)")
+                    }
+                }
+            } catch (e: TimeoutCancellationException) {
+                KLog.e("TimeoutCancellationException I'm sleeping $e")
+                jumpPage()
+            }
+        }
+
+    }
+
+    /**
+     * Load an ad.
+     *
+     * @param context the context of the activity that loads the ad
+     */
+    fun loadAd(context: Context) {
+        // Do not load ad if there is an unused ad or one is already loading.
+        if (isLoadingAds || isAdAvailable()) {
+            return
+        }
+        val id = getAdId(getLocalAdData().open_ad, openAdIndex)
+        if(id==""){
+            return
+        }
+        KLog.d(LOG_TAG,"open-load-adUnitId=${id};weight=${getLocalAdData().open_ad[openAdIndex].weight}")
+
+        isLoadingAds = true
+        val request = AdRequest.Builder().build()
+        AppOpenAd.load(
+            context,
+            id,
+            request,
+            AppOpenAd.APP_OPEN_AD_ORIENTATION_PORTRAIT,
+            object : AppOpenAd.AppOpenAdLoadCallback() {
+                /**
+                 * Called when an app open ad has loaded.
+                 *
+                 * @param ad the loaded app open ad.
+                 */
+                override fun onAdLoaded(ad: AppOpenAd) {
+                    appOpenAd = ad
+                    isLoadingAds = false
+                    loadTime = Date().time
+                    KLog.d(LOG_TAG, "open-onAdLoaded-Finish")
+                }
+
+                /**
+                 * Called when an app open ad has failed to load.
+                 *
+                 * @param loadAdError the error.
+                 */
+                override fun onAdFailedToLoad(loadAdError: LoadAdError) {
+                    isLoadingAds = false
+                    openAdIndex++
+                    loadAd(this@StartupActivity)
+                    KLog.d(LOG_TAG, "open-onAdFailedToLoad: " + loadAdError.message)
+                }
+            }
+        )
+    }
+    /** Check if ad was loaded more than n hours ago. */
+    private fun wasLoadTimeLessThanNHoursAgo(numHours: Long): Boolean {
+        val dateDifference: Long = Date().time - loadTime
+        val numMilliSecondsPerHour: Long = 3600000
+        return dateDifference < numMilliSecondsPerHour * numHours
+    }
+
+    /** Check if ad exists and can be shown. */
+    private fun isAdAvailable(): Boolean {
+        return appOpenAd != null && wasLoadTimeLessThanNHoursAgo(1)
+    }
+
+    fun showAdIfAvailable(activity: Activity) {
+        // If the app open ad is already showing, do not show the ad again.
+        if (isShowingAd) {
+            KLog.e(LOG_TAG, "The app open ad is already showing.")
+            return
+        }
+
+        // If the app open ad is not available yet, invoke the callback then load the ad.
+        if (!isAdAvailable()) {
+            KLog.e(LOG_TAG, "The app open ad is not ready yet.")
+            loadAd(activity)
+            return
+        }
+
+        KLog.e("TAG", "Will show ad.")
+        appOpenAd!!.fullScreenContentCallback = object : FullScreenContentCallback() {
+            /** Called when full screen content is dismissed. */
+            override fun onAdDismissedFullScreenContent() {
+                // Set the reference to null so isAdAvailable() returns false.
+                appOpenAd = null
+                isShowingAd = false
+                KLog.e("TAG", "onAdDismissedFullScreenContent.")
+                Toast.makeText(activity, "onAdDismissedFullScreenContent", Toast.LENGTH_SHORT)
+                    .show()
+                loadAd(activity)
+                jumpPage()
+            }
+
+            /** Called when fullscreen content failed to show. */
+            override fun onAdFailedToShowFullScreenContent(adError: AdError) {
+                appOpenAd = null
+                isShowingAd = false
+                KLog.e(LOG_TAG, "onAdFailedToShowFullScreenContent: " + adError.message)
+                loadAd(activity)
+            }
+
+            /** Called when fullscreen content is shown. */
+            override fun onAdShowedFullScreenContent() {
+                KLog.e("TAG", "onAdShowedFullScreenContent.")
+            }
+        }
+        isShowingAd = true
+        if (ActivityCollector.isActivityExist(StartupActivity::class.java)) {
+            appOpenAd!!.show(activity)
+            KLog.d(LOG_TAG, "open--show")
+            lifecycleScope.cancel()
+        }
+    }
+
 }
