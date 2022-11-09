@@ -14,10 +14,14 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.demo.blackbutton.R
 import com.demo.blackbutton.ad.AdLoad
+import com.demo.blackbutton.app.App
 import com.demo.blackbutton.bean.ProfileBean
 import com.demo.blackbutton.constant.Constant
 import com.demo.blackbutton.utils.DensityUtils.px2dp
 import com.demo.blackbutton.utils.GetLocalData
+import com.demo.blackbutton.utils.GetLocalData.addClicksCount
+import com.demo.blackbutton.utils.GetLocalData.addShowCount
+import com.demo.blackbutton.utils.GetLocalData.isAdExceedLimit
 import com.demo.blackbutton.utils.JsonUtil
 import com.demo.blackbutton.utils.NetworkPing
 import com.demo.blackbutton.utils.ResourceUtils.readStringFromAssert
@@ -36,8 +40,8 @@ import com.xuexiang.xutil.common.ClickUtils
 import kotlinx.coroutines.cancel
 
 
-class ServiceListActivity : AppCompatActivity(){
-    private  val LOG_TAG = "ad-log"
+class ServiceListActivity : AppCompatActivity() {
+    private val LOG_TAG = "ad-log"
 
     private lateinit var frameLayoutTitle: FrameLayout
     private lateinit var blackTitle: ImageView
@@ -112,8 +116,8 @@ class ServiceListActivity : AppCompatActivity(){
                     checkSafeLocation = it
                 }
             }
-            safeLocation[0].cheek_state =false
-            checkSafeLocation.cheek_state =true
+            safeLocation[0].cheek_state = false
+            checkSafeLocation.cheek_state = true
         }
         serviceListAdapter = ServiceListAdapter(safeLocation)
         val layoutManager = LinearLayoutManager(this)
@@ -122,20 +126,28 @@ class ServiceListActivity : AppCompatActivity(){
         recyclerView.adapter = serviceListAdapter
         clickEvent()
     }
+
     private fun initLiveBus() {
 
         LiveEventBus
             .get(Constant.BACK_PLUG_ADVERTISEMENT_CACHE, InterstitialAd::class.java)
             .observeForever {
-                mInterstitialAd = it
-                plugInAdvertisementCallback()
+                if (it == null) {
+                    screenAdIndex++
+                    mInterstitialAd = null
+                    loadScreenAdvertisement()
+                } else {
+                    mInterstitialAd = it
+                    plugInAdvertisementCallback()
+                }
             }
 
     }
+
     /**
      * 获取选中数据
      */
-    private fun getSelectedData(position:Int){
+    private fun getSelectedData(position: Int) {
         safeLocation.forEachIndexed { index, _ ->
             safeLocation[index].cheek_state = position == index
             if (safeLocation[index].cheek_state == true) {
@@ -143,6 +155,7 @@ class ServiceListActivity : AppCompatActivity(){
             }
         }
     }
+
     /**
      * 点击事件
      */
@@ -214,19 +227,26 @@ class ServiceListActivity : AppCompatActivity(){
             object : TypeToken<ProfileBean?>() {}.type
         )
     }
+
     @OnLifecycleEvent(Lifecycle.Event.ON_RESUME)
     fun onResumeJumpPage() {
-        KLog.e("TAG","ON_RESUME----->")
+        KLog.e("TAG", "ON_RESUME----->")
     }
+
     private fun loadScreenAdvertisement() {
+        if(isAdExceedLimit()){return}
         adRequest = AdRequest.Builder().build()
-        val id = GetLocalData.getAdId(GetLocalData.getLocalAdData().screen_ad, screenAdIndex)
+        val id = GetLocalData.getAdId(GetLocalData.weightSorting().black_back, screenAdIndex)
         if (id == "") {
             return
         }
-        KLog.d(LOG_TAG,"back---adUnitId=${id};weight=${GetLocalData.getLocalAdData().screen_ad[screenAdIndex].weight}")
+        KLog.d(
+            LOG_TAG,
+            "back---adUnitId=${id};weight=${GetLocalData.weightSorting().black_back[screenAdIndex].bb_w}"
+        )
         AdLoad.loadBackScreenAdvertisement(this, id, adRequest)
     }
+
     /**
      * 插屏广告回调
      */
@@ -234,13 +254,16 @@ class ServiceListActivity : AppCompatActivity(){
         mInterstitialAd?.fullScreenContentCallback = object : FullScreenContentCallback() {
             override fun onAdClicked() {
                 // Called when a click is recorded for an ad.
-                KLog.e("TAG", "Ad was clicked.")
+                KLog.d(LOG_TAG, "Ad was clicked.")
+                addClicksCount()
             }
 
             override fun onAdDismissedFullScreenContent() {
                 // Called when ad is dismissed.
                 finish()
                 mInterstitialAd = null
+                loadScreenAdvertisement()
+
             }
 
             override fun onAdFailedToShowFullScreenContent(p0: AdError) {
@@ -248,6 +271,7 @@ class ServiceListActivity : AppCompatActivity(){
                 KLog.e("TAG", "Ad failed to show fullscreen content.")
                 mInterstitialAd = null
                 screenAdIndex++
+                loadScreenAdvertisement()
             }
 
             override fun onAdImpression() {
@@ -256,9 +280,10 @@ class ServiceListActivity : AppCompatActivity(){
             }
 
             override fun onAdShowedFullScreenContent() {
-                mInterstitialAd =null
+                mInterstitialAd = null
                 // Called when ad is shown.
                 KLog.d(LOG_TAG, "back----show")
+                addShowCount()
             }
         }
     }
@@ -266,13 +291,14 @@ class ServiceListActivity : AppCompatActivity(){
     /**
      * 展示广告或返回
      */
-    fun displayAdvertisementOrReturn(){
-        if(mInterstitialAd!=null){
+    fun displayAdvertisementOrReturn() {
+        if (mInterstitialAd != null) {
             mInterstitialAd?.show(this)
-        }else{
+        } else {
             finish()
         }
     }
+
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
         if (keyCode == KeyEvent.KEYCODE_BACK) {
             displayAdvertisementOrReturn()

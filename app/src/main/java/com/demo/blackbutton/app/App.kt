@@ -39,10 +39,24 @@ class App : Application(), androidx.work.Configuration.Provider by Core,
     private lateinit var appOpenAdManager: AppOpenAdManager
     private var currentActivity: Activity? = null
     var AD_UNIT_ID = ""
-    private val LOG_TAG = "TAG"
+    private val LOG_TAG = "ad-log"
+    private var app_activity: Activity? = null
 
     // 是否进入后台
-    private var whetherBackground = false
+    var whetherBackground = false
+
+    //广告是否超出上限
+    var adExceedLimit = false
+
+    //当日日期
+    var adDate = ""
+
+
+    val mmkv by lazy {
+        //启用mmkv的多进程功能
+        MMKV.mmkvWithID("BlackButton", MMKV.MULTI_PROCESS_MODE)
+    }
+
     override fun onCreate() {
         super.onCreate()
         registerActivityLifecycleCallbacks(this)
@@ -64,12 +78,38 @@ class App : Application(), androidx.work.Configuration.Provider by Core,
         }
         Core.init(this, MainActivity::class)
         NetworkPing.getTimerThread()
+        isAppOpenSameDay()
     }
+
+    /**
+     * 判断是否是当天打开
+     */
+    private fun isAppOpenSameDay() {
+        adDate = mmkv.decodeString(Constant.CURRENT_DATE, "").toString()
+        if (adDate == "") {
+            MmkvUtils.set(Constant.CURRENT_DATE, CalendarUtils.formatDateNow())
+            KLog.e("TAG", "CalendarUtils.formatDateNow()=${CalendarUtils.formatDateNow()}")
+        } else {
+            KLog.e("TAG", "两个时间比较=${CalendarUtils.dateAfterDate(CalendarUtils.formatDateNow(), adDate)}")
+            if (CalendarUtils.dateAfterDate(CalendarUtils.formatDateNow(), adDate)) {
+                MmkvUtils.set(Constant.CURRENT_DATE, CalendarUtils.formatDateNow())
+                MmkvUtils.set(Constant.CLICKS_COUNT, 0)
+                MmkvUtils.set(Constant.SHOW_COUNT, 0)
+            }
+        }
+    }
+
+
 
     /** LifecycleObserver method that shows the app open ad when the app moves to foreground. */
     @OnLifecycleEvent(Lifecycle.Event.ON_START)
     fun onMoveToForeground() {
         KLog.e("TAG", "ON_START=$whetherBackground")
+        KLog.e(
+            "TAG",
+            "isActivityTop=${ActivityCollector.isActivityTop(applicationContext)}"
+        )
+
         if (whetherBackground) {
             jumpPage()
             whetherBackground = false
@@ -82,6 +122,7 @@ class App : Application(), androidx.work.Configuration.Provider by Core,
         GlobalScope.launch(Dispatchers.Main) {
             delay(3000L)
             whetherBackground = true
+            app_activity?.finish()
         }
     }
 
@@ -91,36 +132,59 @@ class App : Application(), androidx.work.Configuration.Provider by Core,
     private fun jumpPage() {
         val intent = Intent(this, StartupActivity::class.java)
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        intent.putExtra(Constant.RETURN_CURRENT_PAGE, true)
+        if (ActivityCollector.isActivityTop(applicationContext)) {
+            intent.putExtra(Constant.RETURN_CURRENT_PAGE, 2)
+        } else {
+            intent.putExtra(Constant.RETURN_CURRENT_PAGE, 1)
+        }
         startActivity(intent)
     }
 
     /** ActivityLifecycleCallback methods. */
-    override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {}
+    override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {
+        if (activity is AdActivity) {
+            app_activity = activity
+        }
+
+        KLog.e("Lifecycle", "onActivityCreated" + ActivityCollector.getActivityName(activity))
+    }
 
     override fun onActivityStarted(activity: Activity) {
         // An ad activity is started when an ad is showing, which could be AdActivity class from Google
         // SDK or another activity class implemented by a third party mediation partner. Updating the
         // currentActivity only when an ad is not showing will ensure it is not an ad activity, but the
         // one that shows the ad.
+        KLog.e("Lifecycle", "onActivityCreated" + ActivityCollector.getActivityName(activity))
+        if (activity is AdActivity) {
+            app_activity = activity
+        }
+
         if (!appOpenAdManager.isShowingAd) {
             currentActivity = activity
         }
     }
 
     override fun onActivityResumed(p0: Activity) {
+        KLog.e("Lifecycle", "onActivityResumed=" + ActivityCollector.getActivityName(p0))
+
     }
 
     override fun onActivityPaused(p0: Activity) {
+        KLog.e("Lifecycle", "onActivityPaused=" + ActivityCollector.getActivityName(p0))
     }
 
     override fun onActivityStopped(p0: Activity) {
+        KLog.e("Lifecycle", "onActivityStopped=" + ActivityCollector.getActivityName(p0))
     }
 
     override fun onActivitySaveInstanceState(p0: Activity, p1: Bundle) {
+        KLog.e("Lifecycle", "onActivitySaveInstanceState=" + ActivityCollector.getActivityName(p0))
+
     }
 
     override fun onActivityDestroyed(p0: Activity) {
+        KLog.e("Lifecycle", "onActivityDestroyed" + ActivityCollector.getActivityName(p0))
+        app_activity = null
     }
 
     /**
@@ -189,6 +253,7 @@ class App : Application(), androidx.work.Configuration.Provider by Core,
                 }
             )
         }
+
         /** Check if ad was loaded more than n hours ago. */
         private fun wasLoadTimeLessThanNHoursAgo(numHours: Long): Boolean {
             val dateDifference: Long = Date().time - loadTime

@@ -3,7 +3,9 @@
     xmlns:tools="http://schemas.android.com/tools"
     package="com.demo.blackbutton">
 
+    <uses-permission android:name="android.permission.KILL_BACKGROUND_PROCESSES" />
     <uses-permission android:name="android.permission.REORDER_TASKS" />
+
     <application
         android:name=".app.App"
         android:icon="@mipmap/ic_launcher"

@@ -6,9 +6,11 @@ import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import com.demo.blackbutton.R
 import com.demo.blackbutton.ad.AdLoad
+import com.demo.blackbutton.app.App
 import com.demo.blackbutton.constant.Constant
 import com.demo.blackbutton.utils.DensityUtils
 import com.demo.blackbutton.utils.GetLocalData
+import com.demo.blackbutton.utils.GetLocalData.addShowCount
 import com.demo.blackbutton.utils.StatusBarUtils
 import com.example.testdemo.utils.KLog
 import com.google.android.gms.ads.*
@@ -18,8 +20,8 @@ import com.google.android.gms.ads.nativead.NativeAdOptions
 import com.google.android.gms.ads.nativead.NativeAdView
 import com.xuexiang.xutil.common.ClickUtils
 
-class ResultsActivity : AppCompatActivity(){
-    private  val LOG_TAG = "ad-log"
+class ResultsActivity : AppCompatActivity() {
+    private val LOG_TAG = "ad-log"
     private lateinit var frameLayoutTitle: FrameLayout
     private lateinit var blackTitle: ImageView
     private lateinit var imgTitle: ImageView
@@ -77,55 +79,33 @@ class ResultsActivity : AppCompatActivity(){
             tvConnectInfo.text = getString(R.string.disconnected_succeeded)
         }
     }
+
     /**
      * 初始化原生广告
      */
     private fun initNativeAds() {
-        mNativeAds = AdLoad.resultNativeAds
-        mNativeAds.forNativeAd { nativeAd ->
-            var activityDestroyed = false
-            activityDestroyed = isDestroyed
-            if (activityDestroyed || isFinishing || isChangingConfigurations) {
-                nativeAd.destroy()
-                return@forNativeAd
+        AdLoad.resultNativeAd.let {
+            if (it != null) {
+                var activityDestroyed = false
+                activityDestroyed = isDestroyed
+                if (activityDestroyed || isFinishing || isChangingConfigurations) {
+                    it.destroy()
+                    return
+                }
+                currentNativeAd?.destroy()
+                currentNativeAd = it
+                val adView = layoutInflater
+                    .inflate(R.layout.layout_ad_results, null) as NativeAdView
+                populateNativeAdView(it, adView)
+                ad_frame.removeAllViews()
+                ad_frame.addView(adView)
+                adSlotSwitching(true)
+                AdLoad.whetherShowResultAd =false
+                KLog.d(LOG_TAG, "result----show")
+                addShowCount()
+                AdLoad.resultNativeAd =null
             }
-            currentNativeAd?.destroy()
-            currentNativeAd = nativeAd
-            val adView = layoutInflater
-                .inflate(R.layout.layout_ad_results, null) as NativeAdView
-            populateNativeAdView(nativeAd, adView)
-            ad_frame.removeAllViews()
-            ad_frame.addView(adView)
-            adSlotSwitching(true)
         }
-        val videoOptions = VideoOptions.Builder()
-            .setStartMuted(true)
-            .build()
-
-        val adOptions = NativeAdOptions.Builder()
-            .setVideoOptions(videoOptions)
-            .setAdChoicesPlacement(NativeAdOptions.ADCHOICES_TOP_LEFT)
-            .setMediaAspectRatio(NativeAdOptions.NATIVE_MEDIA_ASPECT_RATIO_PORTRAIT)
-            .build()
-
-        mNativeAds.withNativeAdOptions(adOptions)
-        val adLoader = mNativeAds.withAdListener(object : AdListener() {
-            override fun onAdFailedToLoad(loadAdError: LoadAdError) {
-                val error =
-                    """
-           domain: ${loadAdError.domain}, code: ${loadAdError.code}, message: ${loadAdError.message}
-          """"
-                KLog.d(LOG_TAG, "result---onAdLoaded-Failed=$error")
-            }
-
-            override fun onAdLoaded() {
-                super.onAdLoaded()
-                KLog.d(LOG_TAG, "result---onAdLoaded-finish")
-
-            }
-        }).build()
-        adLoader.loadAd(AdRequest.Builder().build())
-        KLog.d(LOG_TAG, "result----show")
     }
 
     private fun populateNativeAdView(nativeAd: NativeAd, adView: NativeAdView) {
@@ -139,7 +119,10 @@ class ResultsActivity : AppCompatActivity(){
         adView.iconView = adView.findViewById(R.id.ad_app_icon)
         adView.advertiserView = adView.findViewById(R.id.ad_advertiser)
         (adView.headlineView as TextView).text = nativeAd.headline
-        nativeAd.mediaContent?.let { adView.mediaView?.apply { setImageScaleType(ImageView.ScaleType.CENTER_CROP) }?.setMediaContent(it) }
+        nativeAd.mediaContent?.let {
+            adView.mediaView?.apply { setImageScaleType(ImageView.ScaleType.CENTER_CROP) }
+                ?.setMediaContent(it)
+        }
 
         // These assets aren't guaranteed to be in every UnifiedNativeAd, so it's important to
         // check before trying to display them.
@@ -190,6 +173,11 @@ class ResultsActivity : AppCompatActivity(){
             ad_frame.visibility = View.GONE
             imgAdFrame.visibility = View.VISIBLE
         }
+    }
+
+    override fun onRestart() {
+        super.onRestart()
+        KLog.e("TAG", "onRestart")
     }
 
 }

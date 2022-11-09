@@ -12,6 +12,7 @@ import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.PreferenceDataStore
 import com.airbnb.lottie.LottieAnimationView
@@ -23,6 +24,9 @@ import com.demo.blackbutton.constant.Constant
 import com.demo.blackbutton.ui.agreement.AgreementWebView
 import com.demo.blackbutton.ui.servicelist.ServiceListActivity
 import com.demo.blackbutton.utils.*
+import com.demo.blackbutton.utils.GetLocalData.addClicksCount
+import com.demo.blackbutton.utils.GetLocalData.addShowCount
+import com.demo.blackbutton.utils.GetLocalData.isAdExceedLimit
 import com.demo.blackbutton.utils.ObjectSaveUtils.getObject
 import com.demo.blackbutton.utils.Utils.FlagConversion
 import com.demo.blackbutton.widget.SlidingMenu
@@ -45,6 +49,7 @@ import com.google.android.gms.ads.nativead.NativeAdView
 import com.google.gson.reflect.TypeToken
 import com.jeremyliao.liveeventbus.LiveEventBus
 import com.tencent.mmkv.MMKV
+import com.xuexiang.xutil.XUtil
 import com.xuexiang.xutil.common.ClickUtils
 import com.xuexiang.xutil.tip.ToastUtils
 import java.text.DecimalFormat
@@ -57,7 +62,7 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
         var stateListener: ((BaseService.State) -> Unit)? = null
     }
 
-    private  val LOG_TAG = "ad-log"
+    private val LOG_TAG = "ad-log"
     private lateinit var frameLayoutTitle: FrameLayout
     private lateinit var rightTitle: ImageView
     private lateinit var navigation: ImageView
@@ -76,9 +81,15 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
     private lateinit var clSwitch: ConstraintLayout
     private lateinit var txtTimer: TextView
 
+    private val startVpn = MutableLiveData<Boolean>()
+
     // 是否能跳转
     private var canIJump = false
     private var mInterstitialAd: InterstitialAd? = null
+
+    //插屏广告是否展示
+    private var whetherShowScreenAd: Boolean = false
+
     private lateinit var adRequest: AdRequest
     var state = BaseService.State.Idle
     private val connection = ShadowsocksConnection(true)
@@ -103,6 +114,10 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
         StatusBarUtils.translucent(this)
         StatusBarUtils.setStatusBarLightMode(this)
         setContentView(R.layout.activity_main)
+        ActivityCollector.addActivity(this, javaClass)
+        startVpn.observe(this) {
+            startVpn()
+        }
         initParam()
         initView()
         initNativeAds()
@@ -140,8 +155,15 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
         LiveEventBus
             .get(Constant.PLUG_ADVERTISEMENT_CACHE, InterstitialAd::class.java)
             .observeForever {
-                mInterstitialAd = it
-                plugInAdvertisementCallback()
+                if (it == null) {
+                    screenAdIndex++
+                    mInterstitialAd = null
+                    loadScreenAdvertisement(adRequest)
+
+                } else {
+                    mInterstitialAd = it
+                    plugInAdvertisementCallback()
+                }
             }
         // 更新计时器
         LiveEventBus
@@ -152,58 +174,37 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
     }
 
     private fun initScreenAd() {
-        adRequest = AdRequest.Builder().build()
-        loadScreenAdvertisement(adRequest)
+        if (!isAdExceedLimit()) {
+            adRequest = AdRequest.Builder().build()
+            loadScreenAdvertisement(adRequest)
+        }
     }
 
     /**
      *home native
      */
     private fun initNativeAds() {
-        val nativeAds = AdLoad.homeNativeAds
-        nativeAds.forNativeAd { nativeAd ->
-            var activityDestroyed = false
-            activityDestroyed = isDestroyed
-            if (activityDestroyed || isFinishing || isChangingConfigurations) {
-                nativeAd.destroy()
-                return@forNativeAd
+        AdLoad.homeNativeAd.let {
+            if (it != null) {
+                var activityDestroyed = false
+                activityDestroyed = isDestroyed
+                if (activityDestroyed || isFinishing || isChangingConfigurations) {
+                    it.destroy()
+                    return
+                }
+                currentNativeAd?.destroy()
+                currentNativeAd = it
+                val adView = layoutInflater
+                    .inflate(R.layout.layout_ad_view, null) as NativeAdView
+                populateNativeAdView(it, adView)
+                ad_frame.removeAllViews()
+                ad_frame.addView(adView)
+                adSlotSwitching(true)
+                KLog.d(LOG_TAG, "home----show")
+                addShowCount()
+                AdLoad.whetherShowHomeAd = false
             }
-            currentNativeAd?.destroy()
-            currentNativeAd = nativeAd
-            val adView = layoutInflater
-                .inflate(R.layout.layout_ad_view, null) as NativeAdView
-            populateNativeAdView(nativeAd, adView)
-            ad_frame.removeAllViews()
-            ad_frame.addView(adView)
-            adSlotSwitching(true)
         }
-        val videoOptions = VideoOptions.Builder()
-            .setStartMuted(true)
-            .build()
-
-        val adOptions = NativeAdOptions.Builder()
-            .setVideoOptions(videoOptions)
-            .setAdChoicesPlacement(NativeAdOptions.ADCHOICES_TOP_LEFT)
-            .setMediaAspectRatio(NativeAdOptions.NATIVE_MEDIA_ASPECT_RATIO_PORTRAIT)
-            .build()
-
-        nativeAds.withNativeAdOptions(adOptions)
-        val adLoader = nativeAds.withAdListener(object : AdListener() {
-            override fun onAdFailedToLoad(loadAdError: LoadAdError) {
-                val error =
-                    """
-           domain: ${loadAdError.domain}, code: ${loadAdError.code}, message: ${loadAdError.message}
-          """"
-                KLog.d(LOG_TAG, "home---onAdLoaded-Failed=$error")
-            }
-
-            override fun onAdLoaded() {
-                super.onAdLoaded()
-                KLog.d(LOG_TAG, "home---onAdLoaded-finish")
-            }
-        }).build()
-        adLoader.loadAd(AdRequest.Builder().build())
-        KLog.d(LOG_TAG, "home----show")
     }
 
     private fun populateNativeAdView(nativeAd: NativeAd, adView: NativeAdView) {
@@ -273,11 +274,14 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
     }
 
     private fun loadScreenAdvertisement(adRequest: AdRequest) {
-        val id = GetLocalData.getAdId(GetLocalData.getLocalAdData().screen_ad, screenAdIndex)
+        val id = GetLocalData.getAdId(GetLocalData.weightSorting().black_connect, screenAdIndex)
         if (id == "") {
             return
         }
-        KLog.d(LOG_TAG,"connect---adUnitId=${id};weight=${GetLocalData.getLocalAdData().open_ad[screenAdIndex].weight}")
+        KLog.d(
+            LOG_TAG,
+            "connect---adUnitId=${id};weight=${GetLocalData.weightSorting().black_connect[screenAdIndex].bb_w}"
+        )
 
         AdLoad.loadScreenAdvertisement(this, id, adRequest)
     }
@@ -356,35 +360,35 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
             }
         }
         clSwitch.setOnClickListener {
-            vpnSwitch()
+            vpnSwitchType()
         }
         radioGroup.setOnClickListener {
+            vpnSwitchType()
+        }
+    }
+
+    private fun vpnSwitchType() {
+        if (isAdExceedLimit()) {
+            vpnSwitchNoAd()
+        } else {
             vpnSwitch()
         }
     }
-    /**
-     * 获取结果页原生广告Id
-     */
-    private fun getResultNativeAdId() {
-        KLog.d(LOG_TAG,"result--adUnitId=${
-            GetLocalData.getAdId(
-                GetLocalData.getLocalAdData().native_ad,
-                nativeAdIndex
-            )
-        };weight=${GetLocalData.getLocalAdData().native_ad[nativeAdIndex].weight}")
-        loadNativeAds(GetLocalData.getAdId(GetLocalData.getLocalAdData().native_ad, nativeAdIndex))
-    }
+
     /**
      * 加载原生广告
      */
-    private fun loadNativeAds(adUnitInt: String?) {
-        AdLoad.loadResultNativeAds(applicationContext, adUnitInt!!)
+    private fun loadNativeAds() {
+        if (!isAdExceedLimit()) {
+            AdLoad.loadResultNativeAds(applicationContext)
+        }
     }
+
     /**
      * vpnSwitch
      */
     private fun vpnSwitch() {
-        getResultNativeAdId()
+        loadNativeAds()
         canIJump = true
         imgSwitch.playAnimation()
         MmkvUtils.set(Constant.SLIDING, true)
@@ -393,7 +397,7 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
                 withTimeout(10000L) {
                     while (isActive) {
                         delay(1000L)
-                        if(mInterstitialAd!=null){
+                        if (mInterstitialAd != null) {
                             mInterstitialAd?.show(this@MainActivity)
                             cancel()
                         }
@@ -405,6 +409,19 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
                 isFrontDesk = true
                 startVpn()
             }
+        }
+    }
+
+    /**
+     * vpnSwitch(无广告)
+     */
+    private fun vpnSwitchNoAd() {
+        canIJump = true
+        imgSwitch.playAnimation()
+        MmkvUtils.set(Constant.SLIDING, true)
+        lifecycleScope.launch(Dispatchers.Main) {
+            delay(1000L)
+            startVpn()
         }
     }
 
@@ -635,13 +652,17 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
         mInterstitialAd?.fullScreenContentCallback = object : FullScreenContentCallback() {
             override fun onAdClicked() {
                 // Called when a click is recorded for an ad.
-                KLog.e("TAG", "Ad was clicked.")
+                KLog.d(LOG_TAG, "Ad was clicked.")
+                whetherShowScreenAd = false
+                addClicksCount()
             }
 
             override fun onAdDismissedFullScreenContent() {
                 // Called when ad is dismissed.
+                KLog.e("TAG", "关闭插屏广告")
                 isFrontDesk = true
-                startVpn()
+                startVpn.postValue(true)
+//                startVpn()
                 mInterstitialAd = null
                 loadScreenAdvertisement(adRequest)
             }
@@ -650,7 +671,6 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
                 // Called when ad fails to show.
                 KLog.e("TAG", "Ad failed to show fullscreen content.")
                 mInterstitialAd = null
-                screenAdIndex++
                 loadScreenAdvertisement(adRequest)
             }
 
@@ -660,9 +680,12 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
             }
 
             override fun onAdShowedFullScreenContent() {
-                mInterstitialAd =null
+                mInterstitialAd = null
                 // Called when ad is shown.
+                KLog.e("TAG", "Called when ad is shown.")
+                whetherShowScreenAd = true
                 KLog.d(LOG_TAG, "connect----show")
+                addShowCount()
             }
         }
     }
@@ -687,19 +710,37 @@ class MainActivity : AppCompatActivity(), ShadowsocksConnection.Callback,
         super.onDestroy()
         DataStore.publicStore.unregisterChangeListener(this)
         connection.disconnect(this)
+        ActivityCollector.removeActivity(this)
         currentNativeAd?.destroy()
     }
 
     override fun onPause() {
         super.onPause()
         isFrontDesk = false
+        lifecycleScope.launch(Dispatchers.Main) {
+            KLog.e("TAG", "onPause--$whetherShowScreenAd")
+            delay(3000L)
+            if (whetherShowScreenAd) {
+                KLog.e("TAG", "onPause--finish")
+                ActivityCollector.getActivity(AdActivity::class.java)?.finish()
+            }
+        }
     }
+
+    /**
+     * 菜单、返回键响应
+     */
+    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+        if (keyCode == KeyEvent.KEYCODE_BACK) {
+            XUtil.get().exitApp()
+        }
+        return true
+    }
+
     override fun onRetry() {
         finish()
-//        ToastUtils.toast(R.string.exit_procedure)
     }
 
     override fun onExit() {
-//        XUtil.get().exitApp()
     }
 }

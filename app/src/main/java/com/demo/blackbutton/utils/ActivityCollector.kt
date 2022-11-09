@@ -3,6 +3,10 @@ package com.demo.blackbutton.utils
 import android.annotation.TargetApi
 import android.app.Activity
 import android.os.Build
+import android.app.ActivityManager
+import android.content.Context
+import com.demo.blackbutton.constant.Constant
+
 
 object ActivityCollector {
     /**
@@ -56,5 +60,20 @@ object ActivityCollector {
         if (activities!!.containsValue(activity)) {
             activities!!.remove(activity.javaClass)
         }
+    }
+
+    /**
+     *
+     * 判断某开屏activity是否处于栈顶
+     * @return  true在栈顶 false不在栈顶
+     */
+     fun isActivityTop( context: Context): Boolean {
+        val manager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+        val name = manager.getRunningTasks(1)[0].topActivity!!.className
+        return name == Constant.ADVERTISING_PACKAGE
+    }
+    fun getActivityName(activity: Activity): String {
+        val manager = activity.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+        return manager.getRunningTasks(1)[0].topActivity!!.className
     }
 }

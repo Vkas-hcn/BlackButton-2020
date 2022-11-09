@@ -5,13 +5,19 @@ import java.io.Serializable
 
 @Keep
 data class AdsBean(
-    val open_ad: List<AdsID> = ArrayList(),
-    val native_ad: List<AdsID> = ArrayList(),
-    val screen_ad: List<AdsID> = ArrayList(),
-    ) : Serializable
+    var black_open: MutableList<AdsID> = ArrayList(),
+    var black_home: MutableList<AdsID> = ArrayList(),
+    var black_result: MutableList<AdsID> = ArrayList(),
+    var black_connect: MutableList<AdsID> = ArrayList(),
+    var black_back: MutableList<AdsID> = ArrayList(),
+    var bb_s_num: Int? = null,
+    var bb_c_num: Int? = null,
+) : Serializable
 
 @Keep
 data class AdsID(
-    val adUnitID: String? = null,
-    val weight: String? = null,
+    val bb_t: String? = null,
+    val bb_pl: String? = null,
+    val bb_id: String? = null,
+    val bb_w: Int? = null,
 ) : Serializable
