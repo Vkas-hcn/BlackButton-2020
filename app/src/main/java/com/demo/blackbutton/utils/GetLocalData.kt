@@ -77,6 +77,9 @@ object GetLocalData {
         val bean = getLocalAdData()
         val clicksCount = mmkv.decodeInt(Constant.CLICKS_COUNT, 0)
         val showCount = mmkv.decodeInt(Constant.SHOW_COUNT, 0)
+        KLog.e("TAG","clicksCount=${clicksCount}, showCount=${showCount}")
+        KLog.e("TAG","clicksCount > bean.bb_c_num!!=${clicksCount > bean.bb_c_num!!}")
+
         if (clicksCount > bean.bb_c_num!! || showCount > bean.bb_s_num!!) {
             return true
         }

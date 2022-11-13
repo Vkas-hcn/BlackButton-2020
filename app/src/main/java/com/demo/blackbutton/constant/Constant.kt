@@ -59,6 +59,4 @@ object Constant {
     const val CLICKS_COUNT="clicks_count"
     // 展示次数
     const val SHOW_COUNT="showCount"
-    // 广告是否超出上限
-    const val AD_EXCEED_LIMIT="adExceedLimit"
 }

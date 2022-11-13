@@ -20,21 +20,30 @@ import com.jeremyliao.liveeventbus.LiveEventBus
 import kotlinx.coroutines.*
 
 object AdLoad {
-    private var mInterstitialAd: InterstitialAd? = null
-    private val job = Job()
+    var connectInterstitialAd: InterstitialAd? = null
+    var backInterstitialAd: InterstitialAd? = null
     private const val LOG_TAG = "ad-log"
     private var nativeHomeAdIndex: Int = 0
     private var nativeResultAdIndex: Int = 0
+    // 是否刷新广告
+    var isRefreshAd: Boolean = false
+
+    var homeNativeAd: NativeAd? = null
+    var resultNativeAd: NativeAd? = null
+
+    //是否显示了home广告
+    var whetherShowHomeAd = false
+    //是否显示了Result广告
+    var whetherShowResultAd = false
+
+    //是否显示了back广告
+    var whetherShowBackAd = false
+    //是否显示了connect广告
+    var whetherShowConnectAd = false
+
 
     /**
-     * 存储插屏广告
-     */
-    fun storeScreenAdvertisement() {
-
-    }
-
-    /**
-     * 加载插屏广告
+     * 加载首页插屏广告
      */
     fun loadScreenAdvertisement(
         context: Context,
@@ -49,12 +58,15 @@ object AdLoad {
                 override fun onAdFailedToLoad(adError: LoadAdError) {
                     adError.toString().let { KLog.d(LOG_TAG, "connect---FailedToLoad=$it") }
                     LiveEventBus.get<String>(Constant.PLUG_ADVERTISEMENT_CACHE).post(null)
+                    connectInterstitialAd =null
+                    whetherShowConnectAd = true
                 }
 
                 override fun onAdLoaded(interstitialAd: InterstitialAd) {
-                    mInterstitialAd = interstitialAd
+                    connectInterstitialAd = interstitialAd
                     LiveEventBus.get<InterstitialAd>(Constant.PLUG_ADVERTISEMENT_CACHE)
                         .post(interstitialAd)
+                    whetherShowConnectAd = true
                     KLog.d(LOG_TAG, "connect---onAdLoaded-finish")
                 }
             })
@@ -68,6 +80,11 @@ object AdLoad {
         adUnitId: String,
         adRequest: AdRequest
     ) {
+        KLog.d(LOG_TAG,"返回页插屏广告----$whetherShowBackAd")
+        if(whetherShowBackAd){
+            KLog.d(LOG_TAG,"返回页插屏广告还未展示")
+            return
+        }
         InterstitialAd.load(
             context,
             adUnitId,
@@ -76,10 +93,12 @@ object AdLoad {
                 override fun onAdFailedToLoad(adError: LoadAdError) {
                     adError.toString().let { KLog.d(LOG_TAG, "back---FailedToLoad=$it") }
                     LiveEventBus.get<String>(Constant.BACK_PLUG_ADVERTISEMENT_CACHE).post(null)
+                    backInterstitialAd =null
                 }
 
                 override fun onAdLoaded(interstitialAd: InterstitialAd) {
-                    mInterstitialAd = interstitialAd
+                    whetherShowBackAd = true
+                    backInterstitialAd = interstitialAd
                     LiveEventBus.get<InterstitialAd>(Constant.BACK_PLUG_ADVERTISEMENT_CACHE)
                         .post(interstitialAd)
                     KLog.d(LOG_TAG, "back---onAdLoaded-finish")
@@ -87,13 +106,6 @@ object AdLoad {
             })
     }
 
-    var homeNativeAd: NativeAd? = null
-    var resultNativeAd: NativeAd? = null
-
-    //是否显示了home广告
-    var whetherShowHomeAd = false
-    //是否显示了Result广告
-    var whetherShowResultAd = false
     /**
      * 加载home原生广告
      */
@@ -143,11 +155,14 @@ object AdLoad {
                     nativeHomeAdIndex++
                     loadHomeNativeAds(context)
                 }
+                isRefreshAd =false
             }
 
             override fun onAdLoaded() {
                 super.onAdLoaded()
                 KLog.d(LOG_TAG, "home---加载home原生广告成功")
+                isRefreshAd =false
+                nativeHomeAdIndex = 0
             }
 
             override fun onAdOpened() {
@@ -209,6 +224,7 @@ object AdLoad {
 
             override fun onAdLoaded() {
                 super.onAdLoaded()
+                nativeResultAdIndex = 0
                 KLog.d(LOG_TAG, "result---加载result原生广告成功")
             }
 
@@ -219,24 +235,5 @@ object AdLoad {
 
             }
         }).build().loadAd(AdRequest.Builder().build())
-    }
-
-    /**
-     * 请求开屏广告
-     */
-    fun requestScreenOpenAd() {
-        val application = App()
-
-        var openAdLaunch = CoroutineScope(job)
-        var num = 0
-        openAdLaunch.launch {
-            try {
-                while (isActive) {
-                    num++
-                }
-            } finally {
-            }
-
-        }
     }
 }

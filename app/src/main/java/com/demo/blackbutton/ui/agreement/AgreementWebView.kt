@@ -18,12 +18,13 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.demo.blackbutton.R
+import com.demo.blackbutton.base.BaseActivity
 import com.demo.blackbutton.constant.Constant
 import com.demo.blackbutton.utils.DensityUtils
 import com.demo.blackbutton.utils.StatusBarUtils
 
 
-class AgreementWebView : AppCompatActivity() {
+class AgreementWebView : BaseActivity() {
     private lateinit var webView: WebView
 
     private lateinit var frameLayoutTitle: FrameLayout

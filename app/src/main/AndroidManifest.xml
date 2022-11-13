@@ -38,7 +38,9 @@
         <activity
             android:name=".ui.MainActivity"
             android:launchMode="singleTask" />
-        <activity android:name=".ui.servicelist.ServiceListActivity" />
+        <activity
+            android:name=".ui.servicelist.ServiceListActivity"
+            android:launchMode="singleTop"/>
         <activity
             android:name=".ui.agreement.AgreementWebView"
             android:launchMode="singleTop" />

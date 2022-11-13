@@ -7,7 +7,9 @@ import androidx.appcompat.app.AppCompatActivity
 import com.demo.blackbutton.R
 import com.demo.blackbutton.ad.AdLoad
 import com.demo.blackbutton.app.App
+import com.demo.blackbutton.base.BaseActivity
 import com.demo.blackbutton.constant.Constant
+import com.demo.blackbutton.utils.ActivityCollector
 import com.demo.blackbutton.utils.DensityUtils
 import com.demo.blackbutton.utils.GetLocalData
 import com.demo.blackbutton.utils.GetLocalData.addShowCount
@@ -20,7 +22,7 @@ import com.google.android.gms.ads.nativead.NativeAdOptions
 import com.google.android.gms.ads.nativead.NativeAdView
 import com.xuexiang.xutil.common.ClickUtils
 
-class ResultsActivity : AppCompatActivity() {
+class ResultsActivity : BaseActivity() {
     private val LOG_TAG = "ad-log"
     private lateinit var frameLayoutTitle: FrameLayout
     private lateinit var blackTitle: ImageView
@@ -41,6 +43,7 @@ class ResultsActivity : AppCompatActivity() {
         StatusBarUtils.setStatusBarLightMode(this)
         setContentView(R.layout.activity_results)
         supportActionBar?.hide()
+        ActivityCollector.addActivity(this, javaClass)
         initView()
         initNativeAds()
     }
@@ -84,6 +87,8 @@ class ResultsActivity : AppCompatActivity() {
      * 初始化原生广告
      */
     private fun initNativeAds() {
+        App().isAppOpenSameDay()
+        if(GetLocalData.isAdExceedLimit()){return}
         AdLoad.resultNativeAd.let {
             if (it != null) {
                 var activityDestroyed = false
@@ -100,10 +105,11 @@ class ResultsActivity : AppCompatActivity() {
                 ad_frame.removeAllViews()
                 ad_frame.addView(adView)
                 adSlotSwitching(true)
-                AdLoad.whetherShowResultAd =false
                 KLog.d(LOG_TAG, "result----show")
                 addShowCount()
+                AdLoad.whetherShowResultAd =false
                 AdLoad.resultNativeAd =null
+                AdLoad.loadResultNativeAds(applicationContext)
             }
         }
     }
@@ -177,7 +183,14 @@ class ResultsActivity : AppCompatActivity() {
 
     override fun onRestart() {
         super.onRestart()
-        KLog.e("TAG", "onRestart")
+        KLog.e("TAG", "ResultsActivity-onRestart${App.isBackData}")
+        if(App.isBackData){
+            initNativeAds()
+        }
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        ActivityCollector.removeActivity(this)
+    }
 }

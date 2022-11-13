@@ -8,12 +8,17 @@ import android.content.Context
 import com.demo.blackbutton.constant.Constant
 
 
+
+
+
 object ActivityCollector {
     /**
      * 存放activity的列表
      */
     var activities: HashMap<Class<*>, Activity>? = LinkedHashMap()
-
+    /**
+     * 是否在前台
+     */
     /**
      * 添加Activity
      *
@@ -42,7 +47,7 @@ object ActivityCollector {
     }
 
     /**
-     * 获得指定activity实例
+     * 获得指定activity
      *
      * @param clazz Activity 的类对象
      * @return
@@ -75,5 +80,19 @@ object ActivityCollector {
     fun getActivityName(activity: Activity): String {
         val manager = activity.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
         return manager.getRunningTasks(1)[0].topActivity!!.className
+    }
+
+    /**
+     * 获得栈中最顶层的Activity
+     *
+     * @param context
+     * @return
+     */
+    fun getTopActivity(context: Context): String? {
+        val manager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+        val runningTaskInfos = manager.getRunningTasks(1)
+        return if (runningTaskInfos != null) {
+            runningTaskInfos[0].topActivity.toString()
+        } else null
     }
 }

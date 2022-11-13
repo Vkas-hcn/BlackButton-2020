@@ -4,17 +4,15 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.os.CountDownTimer
-import android.util.Log
-import android.view.KeyEvent
 import android.view.View
 import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.lifecycleScope
 import com.demo.blackbutton.BuildConfig
 import com.demo.blackbutton.R
 import com.demo.blackbutton.ad.AdLoad
 import com.demo.blackbutton.app.App
+import com.demo.blackbutton.base.BaseActivity
 import com.demo.blackbutton.constant.Constant
 import com.demo.blackbutton.utils.*
 import com.demo.blackbutton.utils.GetLocalData.addClicksCount
@@ -27,7 +25,6 @@ import com.example.testdemo.utils.KLog
 import com.github.shadowsocks.bean.AroundFlowBean
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.remoteconfig.ktx.remoteConfig
-import com.jeremyliao.liveeventbus.LiveEventBus
 import com.xuexiang.xutil.tip.ToastUtils
 import java.util.*
 import com.demo.blackbutton.utils.GetLocalData.weightSorting
@@ -36,18 +33,23 @@ import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.FullScreenContentCallback
 import com.google.android.gms.ads.LoadAdError
 import com.google.android.gms.ads.appopen.AppOpenAd
-import com.xuexiang.xutil.XUtil
 import kotlinx.coroutines.*
 
 
 /**
  * Startup Page
  */
-class StartupActivity : AppCompatActivity(),
+class StartupActivity : BaseActivity(),
     HorizontalProgressView.HorizontalProgressUpdateListener {
-    private var whetherReturnCurrentPage: Int = 0
-    private lateinit var horizontalProgressView: HorizontalProgressView
     private val LOG_TAG = "ad-log"
+
+    companion object {
+        var whetherReturnCurrentPage: Boolean = false
+    }
+
+    private lateinit var horizontalProgressView: HorizontalProgressView
+    private val jumpPageLiveData = MutableLiveData<Boolean>()
+    private val appOpenAdShow = MutableLiveData<Boolean>()
 
     // 绕流数据
     private lateinit var aroundFlowData: AroundFlowBean
@@ -70,11 +72,17 @@ class StartupActivity : AppCompatActivity(),
         initView()
     }
 
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        val data = intent?.getBooleanExtra(Constant.RETURN_CURRENT_PAGE, false)
+        KLog.e("TAG", "Data====$data")
+    }
+
     /**
      * initParam
      */
     private fun initParam() {
-        whetherReturnCurrentPage = intent.getIntExtra(Constant.RETURN_CURRENT_PAGE, 0)
+        whetherReturnCurrentPage = intent.getBooleanExtra(Constant.RETURN_CURRENT_PAGE, false)
     }
 
     private fun initView() {
@@ -82,6 +90,16 @@ class StartupActivity : AppCompatActivity(),
         horizontalProgressView.setProgressViewUpdateListener(this)
         horizontalProgressView.startProgressAnimation()
         aroundFlowData = AroundFlowBean()
+        jumpPageLiveData.observe(this) {
+            KLog.e("TAG", "jumpPageLiveData")
+            jumpPage()
+        }
+        appOpenAdShow.observe(this) {
+            appOpenAd!!.show(this)
+            KLog.d(LOG_TAG, "open--show")
+            addShowCount()
+            lifecycleScope.cancel()
+        }
         getFirebaseData()
 
     }
@@ -89,7 +107,8 @@ class StartupActivity : AppCompatActivity(),
     /**
      * 加载广告
      */
-    fun loadAdvertisement() {
+    private fun loadAdvertisement() {
+        App().isAppOpenSameDay()
         if (isAdExceedLimit()) {
             lifecycleScope.launch {
                 delay(2000L)
@@ -135,25 +154,14 @@ class StartupActivity : AppCompatActivity(),
     private fun jumpPage() {
         KLog.e("TAG", "jumpPage=$whetherReturnCurrentPage")
         // 不是后台切回来的跳转，是后台切回来的直接finish启动页
-        if (whetherReturnCurrentPage == 0) {
+        if (!whetherReturnCurrentPage) {
             val intent = Intent(this@StartupActivity, MainActivity::class.java)
             val bestData = findTheBestIp()
             val dataJson = JsonUtil.toJson(bestData)
             MmkvUtils.set(Constant.BEST_SERVICE_DATA, dataJson)
             startActivity(intent)
         }
-        if (whetherReturnCurrentPage == 1 || whetherReturnCurrentPage == 2) {
-            finish()
-        }
-    }
-
-    /**
-     * 跳转判断
-     */
-    fun jumpJudgment() {
-        if (whetherReturnCurrentPage == 2) {
-            finish()
-        }
+        finish()
     }
 
     override fun onDestroy() {
@@ -237,6 +245,7 @@ class StartupActivity : AppCompatActivity(),
                     appOpenAd = ad
                     isLoadingAds = false
                     loadTime = Date().time
+                    openAdIndex = 0
                     KLog.d(LOG_TAG, "open-onAdLoaded-Finish")
                 }
 
@@ -247,8 +256,10 @@ class StartupActivity : AppCompatActivity(),
                  */
                 override fun onAdFailedToLoad(loadAdError: LoadAdError) {
                     isLoadingAds = false
-                    openAdIndex++
-                    loadAd(this@StartupActivity)
+                    if (openAdIndex < weightSorting().black_open.size - 1) {
+                        openAdIndex++
+                        loadAd(this@StartupActivity)
+                    }
                     KLog.d(LOG_TAG, "open-onAdFailedToLoad: " + loadAdError.message)
                 }
             }
@@ -267,7 +278,7 @@ class StartupActivity : AppCompatActivity(),
         return appOpenAd != null && wasLoadTimeLessThanNHoursAgo(1)
     }
 
-    fun showAdIfAvailable(activity: Activity) {
+    private fun showAdIfAvailable(activity: Activity) {
         // If the app open ad is already showing, do not show the ad again.
         if (isShowingAd) {
             KLog.e(LOG_TAG, "The app open ad is already showing.")
@@ -292,7 +303,9 @@ class StartupActivity : AppCompatActivity(),
                     .show()
                 loadAd(activity)
                 KLog.e("TAG", "onAdDismissedFullScreenContent.=${whetherReturnCurrentPage}")
-                jumpPage()
+                if (!App.whetherBackground) {
+                    jumpPageLiveData.postValue(true)
+                }
             }
 
             /** Called when fullscreen content failed to show. */
@@ -315,15 +328,6 @@ class StartupActivity : AppCompatActivity(),
             }
         }
         isShowingAd = true
-        if (ActivityCollector.isActivityExist(StartupActivity::class.java)) {
-            appOpenAd!!.show(activity)
-            KLog.d(LOG_TAG, "open--show")
-            addShowCount()
-            lifecycleScope.cancel()
-        }
-    }
-
-    override fun onStart() {
-        super.onStart()
+        appOpenAdShow.postValue(true)
     }
 }
