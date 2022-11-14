@@ -57,9 +57,10 @@ class ServiceListActivity : BaseActivity() {
     private lateinit var safeLocation: MutableList<ProfileBean.SafeLocation>
     private lateinit var checkSafeLocation: ProfileBean.SafeLocation
     private lateinit var adRequest: AdRequest
-    private var screenAdIndex: Int = 0
+
     //选中IP
     private var selectIp: String? = null
+
     //whetherConnected
     private var whetherConnected = false
     private lateinit var tvConnect: TextView
@@ -134,18 +135,19 @@ class ServiceListActivity : BaseActivity() {
         returnHomePage.observe(this) {
             ActivityCollector.removeActivity(this)
         }
-        LiveEventBus
-            .get(Constant.BACK_PLUG_ADVERTISEMENT_CACHE, InterstitialAd::class.java)
-            .observeForever {
-                if (it == null) {
-                    screenAdIndex++
-                    AdLoad.backInterstitialAd = null
-                    loadScreenAdvertisement()
-                } else {
-                    screenAdIndex = 0
-                    plugInAdvertisementCallback()
-                }
-            }
+//        LiveEventBus
+//            .get(Constant.BACK_PLUG_ADVERTISEMENT_CACHE, InterstitialAd::class.java)
+//            .observeForever {
+//                if (it == null) {
+//                    screenAdIndex++
+//                    AdLoad.backInterstitialAd = null
+//                    KLog.e("TAG4", "back插屏加载失败")
+//                    loadScreenAdvertisement()
+//                } else {
+//                    screenAdIndex = 0
+//                    plugInAdvertisementCallback()
+//                }
+//            }
     }
 
     /**
@@ -233,63 +235,58 @@ class ServiceListActivity : BaseActivity() {
     }
 
     private fun loadScreenAdvertisement() {
-        App().isAppOpenSameDay()
+        App.isAppOpenSameDay()
         if (isAdExceedLimit()) {
             return
         }
+        KLog.e("TAG4", "AdLoad.backInterstitialAd=${AdLoad.backInterstitialAd}")
+        KLog.e("TAG4", "AdLoad.whetherShowBackAd=${AdLoad.whetherShowBackAd}")
         if (AdLoad.backInterstitialAd != null || AdLoad.whetherShowBackAd) {
             return
         }
         adRequest = AdRequest.Builder().build()
-        val id = GetLocalData.getAdId(GetLocalData.weightSorting().black_back, screenAdIndex)
-        if (id == "") {
-            return
-        }
-        KLog.d(
-            LOG_TAG,
-            "back---adUnitId=${id};weight=${GetLocalData.weightSorting().black_back[screenAdIndex].bb_w}"
-        )
-        AdLoad.loadBackScreenAdvertisement(this, id, adRequest)
+
+        AdLoad.loadBackScreenAdvertisement(this, adRequest)
     }
 
     /**
      * 插屏广告回调
      */
     private fun plugInAdvertisementCallback() {
-        AdLoad.backInterstitialAd?.fullScreenContentCallback = object : FullScreenContentCallback() {
-            override fun onAdClicked() {
-                // Called when a click is recorded for an ad.
-                KLog.d(LOG_TAG, "Ad was clicked.")
-                addClicksCount()
-            }
+        AdLoad.backInterstitialAd?.fullScreenContentCallback =
+            object : FullScreenContentCallback() {
+                override fun onAdClicked() {
+                    // Called when a click is recorded for an ad.
+                    KLog.d(LOG_TAG, "Ad was clicked.")
+                    addClicksCount()
+                }
 
-            override fun onAdDismissedFullScreenContent() {
-                // Called when ad is dismissed.
-                val intent = Intent(this@ServiceListActivity, MainActivity::class.java)
-                startActivity(intent)
-                finish()
-                KLog.d(LOG_TAG,"关闭back插屏")
-                AdLoad.backInterstitialAd =null
-            }
+                override fun onAdDismissedFullScreenContent() {
+                    // Called when ad is dismissed.
+                    val intent = Intent(this@ServiceListActivity, MainActivity::class.java)
+                    startActivity(intent)
+                    finish()
+                    KLog.d(LOG_TAG, "关闭back插屏")
+                    AdLoad.backInterstitialAd = null
+                }
 
-            override fun onAdFailedToShowFullScreenContent(p0: AdError) {
-                // Called when ad fails to show.
-                AdLoad.backInterstitialAd =null
-                screenAdIndex++
-            }
+                override fun onAdFailedToShowFullScreenContent(p0: AdError) {
+                    // Called when ad fails to show.
+                    AdLoad.backInterstitialAd = null
+                }
 
-            override fun onAdImpression() {
-                // Called when an impression is recorded for an ad.
-            }
+                override fun onAdImpression() {
+                    // Called when an impression is recorded for an ad.
+                }
 
-            override fun onAdShowedFullScreenContent() {
-                // Called when ad is shown.
-                KLog.d(LOG_TAG, "back----show")
-                AdLoad.backInterstitialAd =null
-                AdLoad.whetherShowBackAd = false
-                addShowCount()
+                override fun onAdShowedFullScreenContent() {
+                    // Called when ad is shown.
+                    KLog.d(LOG_TAG, "back----show")
+                    AdLoad.backInterstitialAd = null
+                    AdLoad.whetherShowBackAd = false
+                    addShowCount()
+                }
             }
-        }
     }
 
     /**
@@ -297,6 +294,7 @@ class ServiceListActivity : BaseActivity() {
      */
     private fun displayAdvertisementOrReturn() {
         if (AdLoad.backInterstitialAd != null) {
+            plugInAdvertisementCallback()
             AdLoad.backInterstitialAd?.show(this)
         } else {
             finish()

@@ -39,18 +39,41 @@ class App : Application(), androidx.work.Configuration.Provider by Core,
         var isBackData = false
         // 是否进入后台（三秒后）
         var whetherBackground = false
+        val mmkv by lazy {
+            //启用mmkv的多进程功能
+            MMKV.mmkvWithID("BlackButton", MMKV.MULTI_PROCESS_MODE)
+        }
+        //当日日期
+        var adDate = ""
+        /**
+         * 判断是否是当天打开
+         */
+        fun isAppOpenSameDay() {
+            adDate = mmkv.decodeString(Constant.CURRENT_DATE, "").toString()
+            if (adDate == "") {
+                MmkvUtils.set(Constant.CURRENT_DATE, CalendarUtils.formatDateNow())
+                KLog.e("TAG", "CalendarUtils.formatDateNow()=${CalendarUtils.formatDateNow()}")
+            } else {
+                KLog.e("TAG", "当前时间=${CalendarUtils.formatDateNow()}")
+                KLog.e("TAG", "存储时间=${adDate}")
+
+                KLog.e(
+                    "TAG",
+                    "两个时间比较=${CalendarUtils.dateAfterDate(adDate, CalendarUtils.formatDateNow())}"
+                )
+                if (CalendarUtils.dateAfterDate(adDate, CalendarUtils.formatDateNow())) {
+                    MmkvUtils.set(Constant.CURRENT_DATE, CalendarUtils.formatDateNow())
+                    MmkvUtils.set(Constant.CLICKS_COUNT, 0)
+                    MmkvUtils.set(Constant.SHOW_COUNT, 0)
+                }
+            }
+        }
     }
     private var job: Job? = null
     private val LOG_TAG = "ad-log"
     private var ad_activity: Activity? = null
     private var top_activity: Activity? = null
 
-    //当日日期
-    var adDate = ""
-    val mmkv by lazy {
-        //启用mmkv的多进程功能
-        MMKV.mmkvWithID("BlackButton", MMKV.MULTI_PROCESS_MODE)
-    }
     private var flag = 0
     override fun onCreate() {
         super.onCreate()
@@ -74,29 +97,6 @@ class App : Application(), androidx.work.Configuration.Provider by Core,
         isAppOpenSameDay()
     }
 
-    /**
-     * 判断是否是当天打开
-     */
-    fun isAppOpenSameDay() {
-        adDate = mmkv.decodeString(Constant.CURRENT_DATE, "").toString()
-        if (adDate == "") {
-            MmkvUtils.set(Constant.CURRENT_DATE, CalendarUtils.formatDateNow())
-            KLog.e("TAG", "CalendarUtils.formatDateNow()=${CalendarUtils.formatDateNow()}")
-        } else {
-            KLog.e("TAG", "当前时间=${CalendarUtils.formatDateNow()}")
-            KLog.e("TAG", "存储时间=${adDate}")
-
-            KLog.e(
-                "TAG",
-                "两个时间比较=${CalendarUtils.dateAfterDate(adDate, CalendarUtils.formatDateNow())}"
-            )
-            if (CalendarUtils.dateAfterDate(adDate, CalendarUtils.formatDateNow())) {
-                MmkvUtils.set(Constant.CURRENT_DATE, CalendarUtils.formatDateNow())
-                MmkvUtils.set(Constant.CLICKS_COUNT, 0)
-                MmkvUtils.set(Constant.SHOW_COUNT, 0)
-            }
-        }
-    }
 
 
     /** LifecycleObserver method that shows the app open ad when the app moves to foreground. */
@@ -105,8 +105,9 @@ class App : Application(), androidx.work.Configuration.Provider by Core,
     fun onMoveToForeground() {
         job?.cancel()
         job = null
-        KLog.e("TAG", "onMoveToForeground=$whetherBackground")
-        if (whetherBackground) {
+        KLog.v("Lifecycle", "onMoveToForeground=$whetherBackground")
+        //从后台切过来，跳转启动页
+        if (whetherBackground&& !isBackData) {
             jumpPage()
         }
     }
@@ -114,7 +115,7 @@ class App : Application(), androidx.work.Configuration.Provider by Core,
     @DelicateCoroutinesApi
     @OnLifecycleEvent(Lifecycle.Event.ON_STOP)
     fun onSTOPJumpPage() {
-        KLog.e("TAG", "onSTOPJumpPage=$whetherBackground")
+        KLog.v("Lifecycle", "onSTOPJumpPage=$whetherBackground")
         job = GlobalScope.launch {
             whetherBackground = false
             delay(3000L)
@@ -128,17 +129,21 @@ class App : Application(), androidx.work.Configuration.Provider by Core,
      * 跳转页面
      */
     private fun jumpPage() {
+        ad_activity?.finish()
         whetherBackground = false
-        val intent = Intent(applicationContext, StartupActivity::class.java)
-        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        val intent = Intent(top_activity, StartupActivity::class.java)
+//        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
         intent.putExtra(Constant.RETURN_CURRENT_PAGE, true)
-        applicationContext.startActivity(intent)
+        top_activity?.startActivity(intent)
+
     }
 
     /** ActivityLifecycleCallback methods. */
     override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {
         if (activity !is AdActivity) {
             top_activity = activity
+        }else{
+            ad_activity = activity
         }
 
         KLog.v("Lifecycle", "onActivityCreated" + activity.javaClass.name)
@@ -149,16 +154,18 @@ class App : Application(), androidx.work.Configuration.Provider by Core,
         // SDK or another activity class implemented by a third party mediation partner. Updating the
         // currentActivity only when an ad is not showing will ensure it is not an ad activity, but the
         // one that shows the ad.
-        KLog.v("Lifecycle", "onActivityStarted" + ActivityCollector.getActivityName(activity))
+        KLog.v("Lifecycle", "onActivityStarted" + activity.javaClass.name)
         if (activity !is AdActivity) {
             top_activity = activity
+        }else{
+            ad_activity = activity
         }
         flag++
         isBackData = false
     }
 
     override fun onActivityResumed(p0: Activity) {
-        KLog.v("Lifecycle", "onActivityResumed=" + ActivityCollector.getActivityName(p0))
+        KLog.v("Lifecycle", "onActivityResumed=" + p0.javaClass.name)
         if (p0 !is AdActivity) {
             top_activity = p0
         }
@@ -171,7 +178,7 @@ class App : Application(), androidx.work.Configuration.Provider by Core,
         } else {
             top_activity = p0
         }
-        KLog.v("Lifecycle", "onActivityPaused=" + ActivityCollector.getActivityName(p0))
+        KLog.v("Lifecycle", "onActivityPaused=" + p0.javaClass.name)
     }
 
     override fun onActivityStopped(p0: Activity) {
@@ -179,16 +186,16 @@ class App : Application(), androidx.work.Configuration.Provider by Core,
         if (flag == 0) {
             isBackData = true
         }
-        KLog.v("Lifecycle", "onActivityStopped=" + ActivityCollector.getActivityName(p0))
+        KLog.v("Lifecycle", "onActivityStopped=" + p0.javaClass.name)
     }
 
     override fun onActivitySaveInstanceState(p0: Activity, p1: Bundle) {
-        KLog.v("Lifecycle", "onActivitySaveInstanceState=" + ActivityCollector.getActivityName(p0))
+        KLog.v("Lifecycle", "onActivitySaveInstanceState=" + p0.javaClass.name)
 
     }
 
     override fun onActivityDestroyed(p0: Activity) {
-        KLog.v("Lifecycle", "onActivityDestroyed" + ActivityCollector.getActivityName(p0))
+        KLog.v("Lifecycle", "onActivityDestroyed" + p0.javaClass.name)
         ad_activity = null
         top_activity = null
     }

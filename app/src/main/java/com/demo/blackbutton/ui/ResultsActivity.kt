@@ -87,7 +87,7 @@ class ResultsActivity : BaseActivity() {
      * 初始化原生广告
      */
     private fun initNativeAds() {
-        App().isAppOpenSameDay()
+        App.isAppOpenSameDay()
         if(GetLocalData.isAdExceedLimit()){return}
         AdLoad.resultNativeAd.let {
             if (it != null) {

@@ -113,11 +113,11 @@ object NetworkPing {
      */
     fun findTheBestIp(): ProfileBean.SafeLocation {
         val profileBean: ProfileBean =
-            if (Utils.isNullOrEmpty(mmkv.decodeString(Constant.PROFILE_DATA))) {
+            if (Utils.isNullOrEmpty(mmkv.decodeString(Constant.PROFILE_DATA_FAST))) {
                 getProfileJsonData()
             } else {
                 JsonUtil.fromJson(
-                    mmkv.decodeString(Constant.PROFILE_DATA),
+                    mmkv.decodeString(Constant.PROFILE_DATA_FAST),
                     object : TypeToken<ProfileBean?>() {}.type
                 )
             }
@@ -134,7 +134,7 @@ object NetworkPing {
      */
     private fun getProfileJsonData(): ProfileBean {
         return JsonUtil.fromJson(
-            ResourceUtils.readStringFromAssert("serviceJson.json"),
+            ResourceUtils.readStringFromAssert("serviceJsonFast.json"),
             object : TypeToken<ProfileBean?>() {}.type
         )
     }

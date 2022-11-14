@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.view.KeyEvent
 import android.view.View
 import android.widget.Toast
 import androidx.lifecycle.MutableLiveData
@@ -17,7 +18,6 @@ import com.demo.blackbutton.constant.Constant
 import com.demo.blackbutton.utils.*
 import com.demo.blackbutton.utils.GetLocalData.addClicksCount
 import com.demo.blackbutton.utils.GetLocalData.addShowCount
-import com.demo.blackbutton.utils.GetLocalData.getAdId
 import com.demo.blackbutton.utils.GetLocalData.isAdExceedLimit
 import com.demo.blackbutton.utils.NetworkPing.findTheBestIp
 import com.demo.blackbutton.widget.HorizontalProgressView
@@ -29,10 +29,7 @@ import com.xuexiang.xutil.tip.ToastUtils
 import java.util.*
 import com.demo.blackbutton.utils.GetLocalData.weightSorting
 import com.google.android.gms.ads.AdError
-import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.FullScreenContentCallback
-import com.google.android.gms.ads.LoadAdError
-import com.google.android.gms.ads.appopen.AppOpenAd
 import kotlinx.coroutines.*
 
 
@@ -53,13 +50,13 @@ class StartupActivity : BaseActivity(),
 
     // 绕流数据
     private lateinit var aroundFlowData: AroundFlowBean
-    private var appOpenAd: AppOpenAd? = null
-    private var isLoadingAds = false
-    var isShowingAd = false
-
-    /** Keep track of the time an app open ad is loaded to ensure you don't show an expired ad. */
-    private var loadTime: Long = 0
-    private var openAdIndex: Int = 0
+//    private var appOpenAd: AppOpenAd? = null
+//    private var isLoadingAds = false
+//    var isShowingAd = false
+//
+//    /** Keep track of the time an app open ad is loaded to ensure you don't show an expired ad. */
+//    private var loadTime: Long = 0
+//    private var openAdIndex: Int = 0
 
     @DelicateCoroutinesApi
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -95,7 +92,8 @@ class StartupActivity : BaseActivity(),
             jumpPage()
         }
         appOpenAdShow.observe(this) {
-            appOpenAd!!.show(this)
+            AdLoad.isShowingAd = true
+            AdLoad.appOpenAd!!.show(this)
             KLog.d(LOG_TAG, "open--show")
             addShowCount()
             lifecycleScope.cancel()
@@ -108,7 +106,7 @@ class StartupActivity : BaseActivity(),
      * 加载广告
      */
     private fun loadAdvertisement() {
-        App().isAppOpenSameDay()
+        App.isAppOpenSameDay()
         if (isAdExceedLimit()) {
             lifecycleScope.launch {
                 delay(2000L)
@@ -133,6 +131,8 @@ class StartupActivity : BaseActivity(),
             val auth = Firebase.remoteConfig
             auth.fetchAndActivate().addOnSuccessListener {
                 ToastUtils.toast("fireBase Connection succeeded")
+                MmkvUtils.set(Constant.PROFILE_DATA, auth.getString("profileData"))
+                MmkvUtils.set(Constant.PROFILE_DATA_FAST, auth.getString("profileData_fast"))
                 MmkvUtils.set(Constant.AROUND_FLOW_DATA, auth.getString("aroundFlowData"))
                 MmkvUtils.set(Constant.ADVERTISING_DATA, auth.getString("advertisingData"))
             }.addOnCompleteListener {
@@ -184,7 +184,8 @@ class StartupActivity : BaseActivity(),
      * 加载开屏广告
      */
     private fun loadOpenScreenAd() {
-        if (appOpenAd != null) {
+        KLog.d(LOG_TAG,"loadOpenScreenAd-加载开屏广告=${AdLoad.appOpenAd}")
+        if (AdLoad.appOpenAd != null) {
             lifecycleScope.launch {
                 delay(2000L)
                 showAdIfAvailable(this@StartupActivity)
@@ -194,7 +195,7 @@ class StartupActivity : BaseActivity(),
         lifecycleScope.launch {
             try {
                 withTimeout(10000L) {
-                    loadAd(this@StartupActivity)
+                    AdLoad.loadOpenAds(this@StartupActivity)
                     delay(1000L)
                     while (isActive) {
                         showAdIfAvailable(this@StartupActivity)
@@ -208,100 +209,29 @@ class StartupActivity : BaseActivity(),
             }
         }
     }
-
-    /**
-     * Load an ad.
-     *
-     * @param context the context of the activity that loads the ad
-     */
-    fun loadAd(context: Context) {
-        // Do not load ad if there is an unused ad or one is already loading.
-        if (isLoadingAds || isAdAvailable()) {
-            return
-        }
-        val id = getAdId(weightSorting().black_open, openAdIndex)
-        if (id == "") {
-            return
-        }
-        KLog.d(
-            LOG_TAG,
-            "open-load-adUnitId=${id};weight=${weightSorting().black_open[openAdIndex].bb_w}"
-        )
-
-        isLoadingAds = true
-        val request = AdRequest.Builder().build()
-        AppOpenAd.load(
-            context,
-            id,
-            request,
-            AppOpenAd.APP_OPEN_AD_ORIENTATION_PORTRAIT,
-            object : AppOpenAd.AppOpenAdLoadCallback() {
-                /**
-                 * Called when an app open ad has loaded.
-                 *
-                 * @param ad the loaded app open ad.
-                 */
-                override fun onAdLoaded(ad: AppOpenAd) {
-                    appOpenAd = ad
-                    isLoadingAds = false
-                    loadTime = Date().time
-                    openAdIndex = 0
-                    KLog.d(LOG_TAG, "open-onAdLoaded-Finish")
-                }
-
-                /**
-                 * Called when an app open ad has failed to load.
-                 *
-                 * @param loadAdError the error.
-                 */
-                override fun onAdFailedToLoad(loadAdError: LoadAdError) {
-                    isLoadingAds = false
-                    if (openAdIndex < weightSorting().black_open.size - 1) {
-                        openAdIndex++
-                        loadAd(this@StartupActivity)
-                    }
-                    KLog.d(LOG_TAG, "open-onAdFailedToLoad: " + loadAdError.message)
-                }
-            }
-        )
-    }
-
-    /** Check if ad was loaded more than n hours ago. */
-    private fun wasLoadTimeLessThanNHoursAgo(numHours: Long): Boolean {
-        val dateDifference: Long = Date().time - loadTime
-        val numMilliSecondsPerHour: Long = 3600000
-        return dateDifference < numMilliSecondsPerHour * numHours
-    }
-
-    /** Check if ad exists and can be shown. */
-    private fun isAdAvailable(): Boolean {
-        return appOpenAd != null && wasLoadTimeLessThanNHoursAgo(1)
-    }
-
     private fun showAdIfAvailable(activity: Activity) {
         // If the app open ad is already showing, do not show the ad again.
-        if (isShowingAd) {
+        if (AdLoad.isShowingAd) {
             KLog.e(LOG_TAG, "The app open ad is already showing.")
             return
         }
 
         // If the app open ad is not available yet, invoke the callback then load the ad.
-        if (!isAdAvailable()) {
+        if (!AdLoad.isAdAvailable()) {
             KLog.e("TAG", "The app open ad is not ready yet.")
-            loadAd(activity)
+            AdLoad.loadOpenAds(activity)
             return
         }
 
         KLog.e("TAG", "Will show ad.")
-        appOpenAd!!.fullScreenContentCallback = object : FullScreenContentCallback() {
+        AdLoad.appOpenAd!!.fullScreenContentCallback = object : FullScreenContentCallback() {
             /** Called when full screen content is dismissed. */
             override fun onAdDismissedFullScreenContent() {
                 // Set the reference to null so isAdAvailable() returns false.
-                appOpenAd = null
-                isShowingAd = false
+                AdLoad.appOpenAd = null
+                AdLoad.isShowingAd = false
                 Toast.makeText(activity, "onAdDismissedFullScreenContent", Toast.LENGTH_SHORT)
                     .show()
-                loadAd(activity)
                 KLog.e("TAG", "onAdDismissedFullScreenContent.=${whetherReturnCurrentPage}")
                 if (!App.whetherBackground) {
                     jumpPageLiveData.postValue(true)
@@ -310,14 +240,14 @@ class StartupActivity : BaseActivity(),
 
             /** Called when fullscreen content failed to show. */
             override fun onAdFailedToShowFullScreenContent(adError: AdError) {
-                appOpenAd = null
-                isShowingAd = false
-                KLog.e(LOG_TAG, "onAdFailedToShowFullScreenContent: " + adError.message)
-                loadAd(activity)
+                AdLoad.appOpenAd = null
+                AdLoad.isShowingAd = false
+                KLog.e("TAG", "onAdFailedToShowFullScreenContent: " + adError.message)
             }
 
             /** Called when fullscreen content is shown. */
             override fun onAdShowedFullScreenContent() {
+                AdLoad.appOpenAd = null
                 KLog.e("TAG", "onAdShowedFullScreenContent.")
             }
 
@@ -327,7 +257,11 @@ class StartupActivity : BaseActivity(),
                 addClicksCount()
             }
         }
-        isShowingAd = true
         appOpenAdShow.postValue(true)
+    }
+
+    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
+        //屏蔽禁用返回键的功能
+        return keyCode == KeyEvent.KEYCODE_BACK
     }
 }

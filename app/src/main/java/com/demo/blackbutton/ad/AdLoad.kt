@@ -11,6 +11,7 @@ import com.demo.blackbutton.utils.GetLocalData.getAdId
 import com.demo.blackbutton.utils.GetLocalData.weightSorting
 import com.example.testdemo.utils.KLog
 import com.google.android.gms.ads.*
+import com.google.android.gms.ads.appopen.AppOpenAd
 import com.google.android.gms.ads.formats.UnifiedNativeAd
 import com.google.android.gms.ads.interstitial.InterstitialAd
 import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
@@ -18,6 +19,7 @@ import com.google.android.gms.ads.nativead.NativeAd
 import com.google.android.gms.ads.nativead.NativeAdOptions
 import com.jeremyliao.liveeventbus.LiveEventBus
 import kotlinx.coroutines.*
+import java.util.*
 
 object AdLoad {
     var connectInterstitialAd: InterstitialAd? = null
@@ -38,10 +40,16 @@ object AdLoad {
 
     //是否显示了back广告
     var whetherShowBackAd = false
+    private var screenAdIndex: Int = 0
     //是否显示了connect广告
     var whetherShowConnectAd = false
 
-
+    var appOpenAd: AppOpenAd? = null
+    var isLoadingAds = false
+    var isShowingAd = false
+    /** Keep track of the time an app open ad is loaded to ensure you don't show an expired ad. */
+     var loadTime: Long = 0
+     var openAdIndex: Int = 0
     /**
      * 加载首页插屏广告
      */
@@ -77,7 +85,6 @@ object AdLoad {
      */
     fun loadBackScreenAdvertisement(
         context: Context,
-        adUnitId: String,
         adRequest: AdRequest
     ) {
         KLog.d(LOG_TAG,"返回页插屏广告----$whetherShowBackAd")
@@ -85,22 +92,33 @@ object AdLoad {
             KLog.d(LOG_TAG,"返回页插屏广告还未展示")
             return
         }
+        val id = getAdId(weightSorting().black_back, screenAdIndex)
+        if (id == "") {
+            return
+        }
+        KLog.d(
+            LOG_TAG,
+            "back---adUnitId=${id};weight=${weightSorting().black_back[screenAdIndex].bb_w}"
+        )
         InterstitialAd.load(
             context,
-            adUnitId,
+            id,
             adRequest,
             object : InterstitialAdLoadCallback() {
                 override fun onAdFailedToLoad(adError: LoadAdError) {
                     adError.toString().let { KLog.d(LOG_TAG, "back---FailedToLoad=$it") }
-                    LiveEventBus.get<String>(Constant.BACK_PLUG_ADVERTISEMENT_CACHE).post(null)
+//                    LiveEventBus.get<String>(Constant.BACK_PLUG_ADVERTISEMENT_CACHE).post(null)
                     backInterstitialAd =null
+                    screenAdIndex++
+                    loadBackScreenAdvertisement(context,adRequest)
                 }
 
                 override fun onAdLoaded(interstitialAd: InterstitialAd) {
+                    screenAdIndex = 0
                     whetherShowBackAd = true
                     backInterstitialAd = interstitialAd
-                    LiveEventBus.get<InterstitialAd>(Constant.BACK_PLUG_ADVERTISEMENT_CACHE)
-                        .post(interstitialAd)
+//                    LiveEventBus.get<InterstitialAd>(Constant.BACK_PLUG_ADVERTISEMENT_CACHE)
+//                        .post(interstitialAd)
                     KLog.d(LOG_TAG, "back---onAdLoaded-finish")
                 }
             })
@@ -236,4 +254,71 @@ object AdLoad {
             }
         }).build().loadAd(AdRequest.Builder().build())
     }
+
+    /**
+     * 加载open开屏广告
+     */
+    fun loadOpenAds(context: Context) {
+        // Do not load ad if there is an unused ad or one is already loading.
+        if (isLoadingAds || isAdAvailable()) {
+            return
+        }
+        val id = getAdId(weightSorting().black_open, openAdIndex)
+        if (id == "") {
+            return
+        }
+        KLog.d(
+            LOG_TAG,
+            "open-load-adUnitId=${id};weight=${weightSorting().black_open[openAdIndex].bb_w}"
+        )
+
+        isLoadingAds = true
+        val request = AdRequest.Builder().build()
+        AppOpenAd.load(
+            context,
+            id,
+            request,
+            AppOpenAd.APP_OPEN_AD_ORIENTATION_PORTRAIT,
+            object : AppOpenAd.AppOpenAdLoadCallback() {
+                /**
+                 * Called when an app open ad has loaded.
+                 *
+                 * @param ad the loaded app open ad.
+                 */
+                override fun onAdLoaded(ad: AppOpenAd) {
+                    appOpenAd = ad
+                    isLoadingAds = false
+                    loadTime = Date().time
+                    openAdIndex = 0
+                    KLog.d(LOG_TAG, "open-onAdLoaded-Finish")
+                }
+
+                /**
+                 * Called when an app open ad has failed to load.
+                 *
+                 * @param loadAdError the error.
+                 */
+                override fun onAdFailedToLoad(loadAdError: LoadAdError) {
+                    isLoadingAds = false
+                    if (openAdIndex < weightSorting().black_open.size - 1) {
+                        openAdIndex++
+                        loadOpenAds(context)
+                    }
+                    KLog.d(LOG_TAG, "open-onAdFailedToLoad: " + loadAdError.message)
+                }
+            }
+        )
+    }
+    /** Check if ad was loaded more than 1 hours ago. */
+    private fun wasLoadTimeLessThanNHoursAgo(): Boolean {
+        val dateDifference: Long = Date().time - loadTime
+        val numMilliSecondsPerHour: Long = 3600000
+        return dateDifference < numMilliSecondsPerHour
+    }
+
+    /** Check if ad exists and can be shown. */
+    fun isAdAvailable(): Boolean {
+        return appOpenAd != null && wasLoadTimeLessThanNHoursAgo()
+    }
+
 }

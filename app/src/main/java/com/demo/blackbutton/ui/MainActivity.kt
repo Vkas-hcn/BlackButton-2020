@@ -59,10 +59,11 @@ import com.xuexiang.xutil.tip.ToastUtils
 import java.text.DecimalFormat
 import kotlinx.coroutines.*
 import android.widget.Toast
+import androidx.activity.result.ActivityResultLauncher
 
 
 class MainActivity : BaseActivity(), ShadowsocksConnection.Callback,
-    OnPreferenceDataStoreChangeListener, ClickUtils.OnClick2ExitListener {
+    OnPreferenceDataStoreChangeListener {
     companion object {
         var stateListener: ((BaseService.State) -> Unit)? = null
     }
@@ -90,8 +91,23 @@ class MainActivity : BaseActivity(), ShadowsocksConnection.Callback,
 
     //后台回来刷新
     private val backstageRefresh = MutableLiveData<Boolean>()
+
     // 后台关闭广告
     private var backgroundCloseAd = false
+
+    //connect插屏show
+    private val interstitialAdShow = MutableLiveData<Boolean>()
+
+    // connectInterstitialAd show
+    private val connectInterstitialAdShow = MutableLiveData<Boolean>()
+
+    // 是否在resume状态
+    private var resumeState = false
+    private var interstitialJob: Job? = null
+
+    //关闭插屏广告
+    private var closeScreenAd = false
+
     // 是否能跳转
     private var canIJump = false
     private lateinit var adRequest: AdRequest
@@ -117,14 +133,33 @@ class MainActivity : BaseActivity(), ShadowsocksConnection.Callback,
         StatusBarUtils.setStatusBarLightMode(this)
         setContentView(R.layout.activity_main)
         ActivityCollector.addActivity(this, javaClass)
-        startVpn.observe(this) {
-            if (!App.isBackData) {
-                startVpn()
-            }
-        }
+
         backstageRefresh.observe(this) {
             KLog.e("isBack", "执行刷新home原生方法=$it")
             initNativeAds()
+        }
+        interstitialAdShow.observe(this) {
+            KLog.e("TAG3", "vpnSwitch7=${AdLoad.connectInterstitialAd}")
+
+            connectInterstitialAdShow.postValue(true)
+        }
+        connectInterstitialAdShow.observe(this) {
+            KLog.e("TAG3", "vpnSwitch8=${AdLoad.connectInterstitialAd}")
+            lifecycleScope.launch {
+                delay(1000)
+                KLog.e("TAG3", "vpnSwitch9=${resumeState}")
+                if (resumeState) {
+                    AdLoad.connectInterstitialAd?.show(this@MainActivity)
+                }
+            }
+
+        }
+        startVpn.observe(this) {
+            KLog.e("TAG3", "startVpn----1--->${App.isBackData}")
+            if (!App.isBackData) {
+                KLog.e("TAG3", "startVpn--2----->")
+                startVpn()
+            }
         }
         initParam()
         initView()
@@ -133,15 +168,6 @@ class MainActivity : BaseActivity(), ShadowsocksConnection.Callback,
         clickEvent()
         initConnectionServer()
         initLiveBus()
-    }
-
-    private val connect = registerForActivityResult(StartService()) {
-        if (it) {
-            imgSwitch.pauseAnimation()
-            ToastUtils.toast(R.string.insufficient_permissions)
-        } else {
-            Core.startService()
-        }
     }
 
     /**
@@ -179,13 +205,20 @@ class MainActivity : BaseActivity(), ShadowsocksConnection.Callback,
             .observeForever {
                 timerUi(it)
             }
+        LiveEventBus
+            .get(Constant.PLUG_ADVERTISEMENT_SHOW, Boolean::class.java)
+            .observe(this) {
+                KLog.e("TAG3", "home插屏展示-LiveEventBus")
+                startVpn()
+            }
+
     }
 
     private fun initScreenAd() {
         if (AdLoad.connectInterstitialAd != null) {
             return
         }
-        App().isAppOpenSameDay()
+        App.isAppOpenSameDay()
         if (!isAdExceedLimit()) {
             adRequest = AdRequest.Builder().build()
             loadScreenAdvertisement(adRequest)
@@ -196,7 +229,7 @@ class MainActivity : BaseActivity(), ShadowsocksConnection.Callback,
      *home native
      */
     private fun initNativeAds() {
-        App().isAppOpenSameDay()
+        App.isAppOpenSameDay()
         if (isAdExceedLimit()) {
             return
         }
@@ -300,7 +333,6 @@ class MainActivity : BaseActivity(), ShadowsocksConnection.Callback,
             LOG_TAG,
             "connect---adUnitId=${id};weight=${GetLocalData.weightSorting().black_connect[screenAdIndex].bb_w}"
         )
-
         AdLoad.loadScreenAdvertisement(this, id, adRequest)
     }
 
@@ -389,13 +421,27 @@ class MainActivity : BaseActivity(), ShadowsocksConnection.Callback,
         }
     }
 
-    private fun vpnSwitchType() {
-        App().isAppOpenSameDay()
-        if (isAdExceedLimit()) {
-            vpnSwitchNoAd()
+    private val connect = registerForActivityResult(StartService()) {
+        if (it) {
+            imgSwitch.pauseAnimation()
+            ToastUtils.toast(R.string.insufficient_permissions)
         } else {
-            vpnSwitch()
+            if (NetworkPing.isNetworkAvailable(this)) {
+                App.isAppOpenSameDay()
+                if (isAdExceedLimit()) {
+                    vpnSwitchNoAd()
+                } else {
+                    vpnSwitch()
+                }
+            } else {
+                imgSwitch.pauseAnimation()
+                ToastUtils.toast("The current device has no network")
+            }
         }
+    }
+
+    private fun vpnSwitchType() {
+        connect.launch(null)
     }
 
     /**
@@ -405,7 +451,7 @@ class MainActivity : BaseActivity(), ShadowsocksConnection.Callback,
         if (AdLoad.resultNativeAd != null) {
             return
         }
-        App().isAppOpenSameDay()
+        App.isAppOpenSameDay()
         if (!isAdExceedLimit()) {
             AdLoad.loadResultNativeAds(applicationContext)
         }
@@ -420,19 +466,27 @@ class MainActivity : BaseActivity(), ShadowsocksConnection.Callback,
         canIJump = true
         imgSwitch.playAnimation()
         MmkvUtils.set(Constant.SLIDING, true)
-        lifecycleScope.launch {
+        KLog.e("TAG3", "vpnSwitch1")
+        interstitialJob = lifecycleScope.launch {
             try {
+                KLog.e("TAG3", "vpnSwitch2")
                 withTimeout(10000L) {
+                    delay(1000)
                     while (isActive) {
+                        KLog.e("TAG3", "vpnSwitch3")
                         delay(1000L)
+                        KLog.e("TAG3", "vpnSwitch4")
                         if (AdLoad.connectInterstitialAd != null) {
-                            AdLoad.connectInterstitialAd?.show(this@MainActivity)
-                            cancel()
+                            KLog.e("TAG3", "vpnSwitch5")
+                            interstitialAdShow.postValue(true)
+                            interstitialJob?.cancel()
+                            interstitialJob = null
                         }
-                        KLog.e("TAG", "while (vpnSwitch)")
+                        KLog.e("TAG3", "while (vpnSwitch)")
                     }
                 }
             } catch (e: TimeoutCancellationException) {
+                KLog.e("TAG3", "vpnSwitch6")
                 KLog.e("TimeoutCancellationException I'm sleeping $e")
                 isFrontDesk = true
                 startVpn()
@@ -561,14 +615,7 @@ class MainActivity : BaseActivity(), ShadowsocksConnection.Callback,
      * 连接vpn服务
      */
     private fun connectToTheVpnService() {
-        if (NetworkPing.isNetworkAvailable(this)) {
-            connect.launch(null)
-        } else {
-            Looper.prepare()
-            imgSwitch.pauseAnimation()
-            ToastUtils.toast("The current device has no network")
-            Looper.loop()
-        }
+        Core.startService()
     }
 
     override fun onServiceDisconnected() = changeState(BaseService.State.Idle)
@@ -629,6 +676,7 @@ class MainActivity : BaseActivity(), ShadowsocksConnection.Callback,
      */
     private fun connectionStop() {
         NetworkPing.cancel()
+        KLog.e("TAG3", "链接停止")
         txtTimer.text = "00:00:00"
     }
 
@@ -642,11 +690,12 @@ class MainActivity : BaseActivity(), ShadowsocksConnection.Callback,
             setSwitchStatus()
             return
         }
-        if (canIJump) {
+        if (canIJump && !App.isBackData) {
             val intent = Intent(this@MainActivity, ResultsActivity::class.java)
             intent.putExtra(Constant.CONNECTION_STATUS, flag)
             startActivity(intent)
             canIJump = false
+            closeScreenAd = false
         }
     }
 
@@ -687,11 +736,19 @@ class MainActivity : BaseActivity(), ShadowsocksConnection.Callback,
 
                 override fun onAdDismissedFullScreenContent() {
                     // Called when ad is dismissed.
-                    KLog.v("Lifecycle", "关闭插屏广告${App.isBackData}")
+                    closeScreenAd = true
+                    KLog.e("TAG3", "关闭home页插屏广告${App.isBackData}")
+
                     isFrontDesk = true
-                    backgroundCloseAd =App.isBackData
+                    backgroundCloseAd = App.isBackData
+//                    if (!App.isBackData) {
+//                        KLog.e("TAG3", "startVpn.postValue1=${App.isBackData}")
+//                        startVpn.postValue(true)
+//                    }
                     if (!App.isBackData) {
-                        startVpn.postValue(true)
+                        KLog.e("TAG3", "LiveEventBus=${App.isBackData}")
+                        LiveEventBus.get<Boolean>(Constant.PLUG_ADVERTISEMENT_SHOW)
+                            .post(true)
                     }
                     AdLoad.connectInterstitialAd = null
                     loadScreenAdvertisement(adRequest)
@@ -721,34 +778,52 @@ class MainActivity : BaseActivity(), ShadowsocksConnection.Callback,
 
     override fun onStart() {
         super.onStart()
+        KLog.e("TAG3", "MainActivity-onStart")
+
         connection.bandwidthTimeout = 500
         isFrontDesk = true
-        if(StartupActivity.whetherReturnCurrentPage && backgroundCloseAd){
-            StartupActivity.whetherReturnCurrentPage =false
-            backgroundCloseAd =false
-            KLog.e("TAG2","vpnSwitchNoAd")
+        if (StartupActivity.whetherReturnCurrentPage && backgroundCloseAd) {
+            StartupActivity.whetherReturnCurrentPage = false
+            backgroundCloseAd = false
+            KLog.e("TAG2", "vpnSwitchNoAd")
             vpnSwitchNoAd()
         }
     }
 
     override fun onResume() {
         super.onResume()
+        KLog.e("TAG3", "MainActivity-onResume=${closeScreenAd};${App.isBackData}")
         isFrontDesk = true
+        resumeState = true
+        if (closeScreenAd) {
+            if (!App.isBackData) {
+                KLog.e("TAG3", "startVpn.postValue1=${App.isBackData}")
+                startVpn()
+            }
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        KLog.e("TAG3", "MainActivity-onPause")
+
+        resumeState = false
     }
 
     override fun onStop() {
         super.onStop()
+        KLog.e("TAG3", "MainActivity-onStop")
+
         connection.bandwidthTimeout = 0
     }
 
     override fun onDestroy() {
         super.onDestroy()
+        KLog.e("TAG3", "MainActivity-onDestroy")
         DataStore.publicStore.unregisterChangeListener(this)
         connection.disconnect(this)
         ActivityCollector.removeActivity(this)
         currentNativeAd?.destroy()
-        KLog.e("Main", "MainActivity-onDestroy")
-
     }
 
     /**
@@ -762,13 +837,6 @@ class MainActivity : BaseActivity(), ShadowsocksConnection.Callback,
             finish()
         }
         return true
-    }
-
-    override fun onRetry() {
-        finish()
-    }
-
-    override fun onExit() {
     }
 
     override fun onRestart() {
