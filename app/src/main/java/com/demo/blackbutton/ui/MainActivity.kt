@@ -164,6 +164,7 @@ class MainActivity : BaseActivity(), ShadowsocksConnection.Callback,
         initParam()
         initView()
         initScreenAd()
+        initNativeAds()
         clickEvent()
         initConnectionServer()
         initLiveBus()
@@ -244,6 +245,7 @@ class MainActivity : BaseActivity(), ShadowsocksConnection.Callback,
                 }
                 currentNativeAd?.destroy()
                 currentNativeAd = it
+                App.whetherInBackground =false
                 val adView = layoutInflater
                     .inflate(R.layout.layout_ad_view, null) as NativeAdView
                 populateNativeAdView(it, adView)
@@ -777,7 +779,6 @@ class MainActivity : BaseActivity(), ShadowsocksConnection.Callback,
     override fun onStart() {
         super.onStart()
         KLog.e("TAG3", "MainActivity-onStart")
-        initNativeAds()
         connection.bandwidthTimeout = 500
         isFrontDesk = true
         if (StartupActivity.whetherReturnCurrentPage && backgroundCloseAd) {
@@ -790,7 +791,10 @@ class MainActivity : BaseActivity(), ShadowsocksConnection.Callback,
 
     override fun onResume() {
         super.onResume()
-        KLog.e("TAG3", "MainActivity-onResume=${closeScreenAd};${App.isBackData}")
+        KLog.e("TAG3", "MainActivity-onResume=${App.whetherInBackground}")
+        if(App.whetherInBackground){
+            initNativeAds()
+        }
         isFrontDesk = true
         resumeState = true
     }
@@ -830,11 +834,4 @@ class MainActivity : BaseActivity(), ShadowsocksConnection.Callback,
         return true
     }
 
-    override fun onRestart() {
-        super.onRestart()
-        KLog.e("TAG", "MainActivity-onRestart${App.isBackData}")
-        if (App.isBackData) {
-            initNativeAds()
-        }
-    }
 }

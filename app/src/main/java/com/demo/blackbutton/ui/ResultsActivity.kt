@@ -99,6 +99,7 @@ class ResultsActivity : BaseActivity() {
                 }
                 currentNativeAd?.destroy()
                 currentNativeAd = it
+                App.whetherInBackground =false
                 val adView = layoutInflater
                     .inflate(R.layout.layout_ad_results, null) as NativeAdView
                 populateNativeAdView(it, adView)
@@ -181,10 +182,10 @@ class ResultsActivity : BaseActivity() {
         }
     }
 
-    override fun onRestart() {
-        super.onRestart()
-        KLog.e("TAG", "ResultsActivity-onRestart${App.isBackData}")
-        if(App.isBackData){
+    override fun onResume() {
+        super.onResume()
+        KLog.e("TAG", "ResultsActivity-onResume${App.isBackData}")
+        if(App.whetherInBackground){
             initNativeAds()
         }
     }

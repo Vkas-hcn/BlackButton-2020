@@ -45,10 +45,12 @@ class App : Application(), androidx.work.Configuration.Provider by Core,
     Application.ActivityLifecycleCallbacks, LifecycleObserver {
 
     companion object {
-        // app进入后台（true进入；false未进入）
+        // app当前是否在后台
         var isBackData = false
         // 是否进入后台（三秒后）
         var whetherBackground = false
+        // 是否进入过后台（true进入；false未进入）
+       var whetherInBackground =false
         val mmkv by lazy {
             //启用mmkv的多进程功能
             MMKV.mmkvWithID("BlackButton", MMKV.MULTI_PROCESS_MODE)
@@ -127,6 +129,7 @@ class App : Application(), androidx.work.Configuration.Provider by Core,
     @DelicateCoroutinesApi
     @OnLifecycleEvent(Lifecycle.Event.ON_STOP)
     fun onSTOPJumpPage() {
+        whetherInBackground =true
         KLog.v("Lifecycle", "onSTOPJumpPage=$whetherBackground")
         job = GlobalScope.launch {
             whetherBackground = false
