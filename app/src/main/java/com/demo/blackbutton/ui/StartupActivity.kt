@@ -184,7 +184,7 @@ class StartupActivity : BaseActivity(),
      * 加载开屏广告
      */
     private fun loadOpenScreenAd() {
-        KLog.d(LOG_TAG,"loadOpenScreenAd-加载开屏广告=${AdLoad.appOpenAd}")
+        KLog.d(LOG_TAG, "loadOpenScreenAd-加载开屏广告=${AdLoad.appOpenAd}")
         if (AdLoad.appOpenAd != null) {
             lifecycleScope.launch {
                 delay(2000L)
@@ -209,6 +209,7 @@ class StartupActivity : BaseActivity(),
             }
         }
     }
+
     private fun showAdIfAvailable(activity: Activity) {
         // If the app open ad is already showing, do not show the ad again.
         if (AdLoad.isShowingAd) {

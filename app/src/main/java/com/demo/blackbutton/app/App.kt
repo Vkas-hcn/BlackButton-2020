@@ -1,5 +1,6 @@
 package com.demo.blackbutton.app
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.Application
 import android.content.Intent
@@ -29,6 +30,15 @@ import com.xuexiang.xutil.XUtil
 import kotlinx.coroutines.*
 import android.app.ActivityManager
 import android.content.Context
+import android.os.Environment
+import android.util.Log
+import cat.ereza.customactivityoncrash.CustomActivityOnCrash
+import cat.ereza.customactivityoncrash.config.CaocConfig
+import com.google.firebase.FirebaseApp
+import java.io.*
+import java.lang.StringBuilder
+import java.text.SimpleDateFormat
+import java.util.*
 
 
 class App : Application(), androidx.work.Configuration.Provider by Core,
@@ -77,6 +87,7 @@ class App : Application(), androidx.work.Configuration.Provider by Core,
     private var flag = 0
     override fun onCreate() {
         super.onCreate()
+        initCrash()
         registerActivityLifecycleCallbacks(this)
         MobileAds.initialize(this) {}
         ProcessLifecycleOwner.get().lifecycle.addObserver(this)
@@ -84,6 +95,7 @@ class App : Application(), androidx.work.Configuration.Provider by Core,
         if (ProcessUtils.isMainProcess()) {
             AppCompatDelegate.setCompatVectorFromResourcesEnabled(true)
             Firebase.initialize(this)
+            FirebaseApp.initializeApp(this)
             ResUtils.init(this)
             XUtil.init(this)
             LiveEventBus
@@ -129,7 +141,7 @@ class App : Application(), androidx.work.Configuration.Provider by Core,
      * 跳转页面
      */
     private fun jumpPage() {
-        ad_activity?.finish()
+//        ad_activity?.finish()
         whetherBackground = false
         val intent = Intent(top_activity, StartupActivity::class.java)
 //        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
@@ -203,6 +215,90 @@ class App : Application(), androidx.work.Configuration.Provider by Core,
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
         Core.updateNotificationChannels()
+    }
+    /**
+     * app 崩溃重启的配置
+     */
+    @SuppressLint("RestrictedApi")
+    private fun initCrash() {
+        CaocConfig.Builder.create().backgroundMode(CaocConfig.BACKGROUND_MODE_SILENT) //背景模式,开启沉浸式
+            .enabled(true) //是否启动全局异常捕获
+            .showErrorDetails(true) //是否显示错误详细信息
+            .showRestartButton(true) //是否显示重启按钮
+            .trackActivities(true) //是否跟踪Activity
+            .minTimeBetweenCrashesMs(1000) //崩溃的间隔时间(毫秒)
+            .restartActivity(StartupActivity::class.java) //重新启动后的activity
+//                                                .errorActivity(YourCustomErrorActivity.class) //崩溃后的错误activity
+//                                                .eventListener(new YourCustomEventListener()) //崩溃后的错误监听
+            .apply()
+        CustomActivityOnCrash.install(this)
+    }
+    fun errorInfo(){
+        val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { thread, throwable -> //获取崩溃时的UNIX时间戳
+            val timeMillis = System.currentTimeMillis()
+            //将时间戳格式化，建立一个String拼接器
+            val stringBuilder: StringBuilder = StringBuilder(
+                SimpleDateFormat("yyyy/MM/dd HH:mm:ss").format(
+                    Date(timeMillis)
+                )
+            )
+            stringBuilder.append(":\n")
+            //获取错误信息
+            stringBuilder.append(throwable.message)
+            stringBuilder.append("\n")
+            //获取堆栈信息
+            val sw = StringWriter()
+            val pw = PrintWriter(sw)
+            throwable.printStackTrace(pw)
+            stringBuilder.append(sw.toString())
+
+            //这就是完整的错误信息了，你可以拿来上传服务器，或者做成本地文件保存等等等等
+            val errorLog = stringBuilder.toString()
+            Log.e("测试", errorLog)
+            //把获取到的日志写到本地，ErrorText.txt文件名字可以自己定义
+            val rootFile: File = getRootFile(this@App)!!
+            Log.e("测试", rootFile.toString())
+            val file = File(rootFile, "ErrorText.txt")
+            var bufferedWriter: BufferedWriter? = null
+            try {
+                //写入数据
+                bufferedWriter = BufferedWriter(FileWriter(file, true))
+                bufferedWriter.write(
+                    """
+                        $errorLog
+                        
+                        """.trimIndent()
+                )
+                bufferedWriter.flush()
+            } catch (e: FileNotFoundException) {
+            } catch (e: IOException) {
+            } finally {
+                try {
+                    bufferedWriter?.close()
+                } catch (e: IOException) {
+                }
+            }
+            //最后如何处理这个崩溃，这里使用默认的处理方式让APP停止运行
+            defaultHandler.uncaughtException(thread, throwable)
+        }
+    }
+
+    /**
+     * 安卓存储目录
+     */
+    fun getRootFile(application: Application): File? {
+        //判断根目录
+        var rootFile: File? = null
+        rootFile = if (Environment.MEDIA_MOUNTED == Environment.getExternalStorageState()) {
+            //Android Q 系统私有空间创建
+            ///storage/emulated/0/Android/data/<package name>/files/ -- 应用卸载会删除该目录下所有文件
+            application.getExternalFilesDir("")
+        } else {
+            //应用专属目录,位置/data/data//files
+            application.filesDir
+        }
+        return rootFile
     }
 
 }

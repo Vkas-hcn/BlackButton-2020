@@ -163,7 +163,6 @@ class MainActivity : BaseActivity(), ShadowsocksConnection.Callback,
         }
         initParam()
         initView()
-        initNativeAds()
         initScreenAd()
         clickEvent()
         initConnectionServer()
@@ -229,10 +228,13 @@ class MainActivity : BaseActivity(), ShadowsocksConnection.Callback,
      *home native
      */
     private fun initNativeAds() {
+        KLog.e("TAG3","initNativeAds-1111-AdLoad.homeNativeAd=${AdLoad.homeNativeAd}")
+
         App.isAppOpenSameDay()
         if (isAdExceedLimit()) {
             return
         }
+        KLog.e("TAG3","initNativeAds-2222-AdLoad.homeNativeAd=${AdLoad.homeNativeAd}")
         AdLoad.homeNativeAd.let {
             if (it != null) {
                 val activityDestroyed: Boolean = isDestroyed
@@ -741,10 +743,6 @@ class MainActivity : BaseActivity(), ShadowsocksConnection.Callback,
 
                     isFrontDesk = true
                     backgroundCloseAd = App.isBackData
-//                    if (!App.isBackData) {
-//                        KLog.e("TAG3", "startVpn.postValue1=${App.isBackData}")
-//                        startVpn.postValue(true)
-//                    }
                     if (!App.isBackData) {
                         KLog.e("TAG3", "LiveEventBus=${App.isBackData}")
                         LiveEventBus.get<Boolean>(Constant.PLUG_ADVERTISEMENT_SHOW)
@@ -779,7 +777,7 @@ class MainActivity : BaseActivity(), ShadowsocksConnection.Callback,
     override fun onStart() {
         super.onStart()
         KLog.e("TAG3", "MainActivity-onStart")
-
+        initNativeAds()
         connection.bandwidthTimeout = 500
         isFrontDesk = true
         if (StartupActivity.whetherReturnCurrentPage && backgroundCloseAd) {
@@ -795,25 +793,18 @@ class MainActivity : BaseActivity(), ShadowsocksConnection.Callback,
         KLog.e("TAG3", "MainActivity-onResume=${closeScreenAd};${App.isBackData}")
         isFrontDesk = true
         resumeState = true
-        if (closeScreenAd) {
-            if (!App.isBackData) {
-                KLog.e("TAG3", "startVpn.postValue1=${App.isBackData}")
-                startVpn()
-            }
-        }
     }
 
     override fun onPause() {
         super.onPause()
         KLog.e("TAG3", "MainActivity-onPause")
-
+        imgSwitch.pauseAnimation()
         resumeState = false
     }
 
     override fun onStop() {
         super.onStop()
         KLog.e("TAG3", "MainActivity-onStop")
-
         connection.bandwidthTimeout = 0
     }
 

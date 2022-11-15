@@ -24,7 +24,7 @@ object GetLocalData {
         } else {
             JsonUtil.fromJson(
                 mmkv.decodeString(Constant.ADVERTISING_DATA),
-                object : TypeToken<ProfileBean?>() {}.type
+                object : TypeToken<AdsBean?>() {}.type
             )
         }
     }
