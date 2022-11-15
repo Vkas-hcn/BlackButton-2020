@@ -211,7 +211,12 @@ class MainActivity : BaseActivity(), ShadowsocksConnection.Callback,
                 KLog.e("TAG3", "home插屏展示-LiveEventBus")
                 startVpn()
             }
-
+        //HOME_NATIVE_REFRESH
+        LiveEventBus
+            .get(Constant.HOME_NATIVE_REFRESH, Boolean::class.java)
+            .observe(this) {
+                initNativeAds()
+            }
     }
 
     private fun initScreenAd() {
@@ -452,6 +457,7 @@ class MainActivity : BaseActivity(), ShadowsocksConnection.Callback,
      * 加载原生广告
      */
     private fun loadNativeAds() {
+        KLog.e("TAG3","AdLoad.resultNativeAd=${AdLoad.resultNativeAd}")
         if (AdLoad.resultNativeAd != null) {
             return
         }
@@ -793,7 +799,9 @@ class MainActivity : BaseActivity(), ShadowsocksConnection.Callback,
         super.onResume()
         KLog.e("TAG3", "MainActivity-onResume=${App.whetherInBackground}")
         if(App.whetherInBackground){
-            initNativeAds()
+            if(AdLoad.homeNativeAd ==null){
+                AdLoad.loadHomeNativeAds(applicationContext,true)
+            }
         }
         isFrontDesk = true
         resumeState = true

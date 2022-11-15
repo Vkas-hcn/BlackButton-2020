@@ -127,7 +127,7 @@ object AdLoad {
     /**
      * 加载home原生广告
      */
-    fun loadHomeNativeAds(context: Context) {
+    fun loadHomeNativeAds(context: Context,refresh:Boolean=false) {
         if (whetherShowHomeAd) {
             KLog.d(LOG_TAG, "home原生广告-还没有展示")
             return
@@ -159,6 +159,10 @@ object AdLoad {
         homeNativeAds.forNativeAd {
             whetherShowHomeAd = true
             homeNativeAd = it
+            if(refresh){
+                LiveEventBus.get<Boolean>(Constant.HOME_NATIVE_REFRESH)
+                    .post(true)
+            }
         }
         homeNativeAds.withAdListener(object : AdListener() {
             override fun onAdFailedToLoad(loadAdError: LoadAdError) {
@@ -171,7 +175,7 @@ object AdLoad {
                 KLog.d(LOG_TAG, "home---加载home原生广告失败=$error")
                 if (nativeHomeAdIndex < weightSorting().black_home.size - 1) {
                     nativeHomeAdIndex++
-                    loadHomeNativeAds(context)
+                    loadHomeNativeAds(context,refresh)
                 }
                 isRefreshAd =false
             }

@@ -48,6 +48,8 @@ object Constant {
     const val PLUG_ADVERTISEMENT_CACHE="plugAdvertisementCache"
     // 插屏广告展示
     const val PLUG_ADVERTISEMENT_SHOW="plugAdvertisementShow"
+    // home原生刷新
+    const val HOME_NATIVE_REFRESH ="homeNativeRefresh"
     // 广告数据
     const val ADVERTISING_DATA="advertisingData"
     // 广告包名
