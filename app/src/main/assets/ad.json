@@ -5,100 +5,40 @@
     {
       "bb_t": "s",
       "bb_pl": "admob",
-      "bb_id": "ca-app-pub-3940256099942544/1033173712",
+      "bb_id": "ca-app-pub-5266234616793334/1646953772",
       "bb_w": 1
-    },
-    {
-      "bb_t": "o",
-      "bb_pl": "admob",
-      "bb_id": "ca-app-pub-3940256099942544/3419835294x",
-      "bb_w": 3
-    },
-    {
-      "bb_t": "o",
-      "bb_pl": "admob",
-      "bb_id": "ca-app-pub-3940256099942544/3419835294",
-      "bb_w": 2
     }
   ],
   "black_home": [
     {
       "bb_t": "n",
       "bb_pl": "admob",
-      "bb_id": "ca-app-pub-3940256099942544/1044960115",
-      "bb_w": 2
-    },
-    {
-      "bb_t": "n",
-      "bb_pl": "admob",
-      "bb_id": "ca-app-pub-3940256099942544/2247696110",
+      "bb_id": "ca-app-pub-5266234616793334/8020790436",
       "bb_w": 1
-    },
-    {
-      "bb_t": "n",
-      "bb_pl": "admob",
-      "bb_id": "ca-app-pub-3940256099942544/2247696110xx",
-      "bb_w": 3
     }
   ],
   "black_result": [
     {
       "bb_t": "n",
       "bb_pl": "admob",
-      "bb_id": "ca-app-pub-3940256099942544/2247696110",
-      "bb_w": 2
-    },
-    {
-      "bb_t": "n",
-      "bb_pl": "admob",
-      "bb_id": "ca-app-pub-3940256099942544/1044960115",
+      "bb_id": "ca-app-pub-5266234616793334/9611351505",
       "bb_w": 1
-    },
-    {
-      "bb_t": "n",
-      "bb_pl": "admob",
-      "bb_id": "ca-app-pub-3940256099942544/2247696110XX",
-      "bb_w": 3
     }
   ],
   "black_connect": [
     {
       "bb_t": "s",
       "bb_pl": "admob",
-      "bb_id": "ca-app-pub-3940256099942544/8691691433",
-      "bb_w": 2
-    },
-    {
-      "bb_t": "s",
-      "bb_pl": "admob",
-      "bb_id": "ca-app-pub-3940256099942544/1033173712",
+      "bb_id": "ca-app-pub-5266234616793334/9396902546",
       "bb_w": 1
-    },
-    {
-      "bb_t": "s",
-      "bb_pl": "admob",
-      "bb_id": "ca-app-pub-3940256099942544/1033173712XX",
-      "bb_w": 3
     }
   ],
   "black_back": [
     {
       "bb_t": "s",
       "bb_pl": "admob",
-      "bb_id": "ca-app-pub-3940256099942544/1033173712XX",
-      "bb_w": 3
-    },
-    {
-      "bb_t": "s",
-      "bb_pl": "admob",
-      "bb_id": "ca-app-pub-3940256099942544/8691691433",
+      "bb_id": "ca-app-pub-5266234616793334/8083820874",
       "bb_w": 1
-    },
-    {
-      "bb_t": "s",
-      "bb_pl": "admob",
-      "bb_id": "ca-app-pub-3940256099942544/1033173712",
-      "bb_w": 2
     }
   ]
 }

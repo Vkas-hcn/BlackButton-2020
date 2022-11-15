@@ -220,6 +220,7 @@ class MainActivity : BaseActivity(), ShadowsocksConnection.Callback,
     }
 
     private fun initScreenAd() {
+        KLog.e(LOG_TAG,"initScreenAd--AdLoad.connectInterstitialAd=${AdLoad.connectInterstitialAd}")
         if (AdLoad.connectInterstitialAd != null) {
             return
         }
@@ -335,6 +336,7 @@ class MainActivity : BaseActivity(), ShadowsocksConnection.Callback,
 
     private fun loadScreenAdvertisement(adRequest: AdRequest) {
         val id = GetLocalData.getAdId(GetLocalData.weightSorting().black_connect, screenAdIndex)
+        KLog.e("TAG","loadScreenAdvertisement--id=${id}")
         if (id == "") {
             return
         }
@@ -436,6 +438,7 @@ class MainActivity : BaseActivity(), ShadowsocksConnection.Callback,
             ToastUtils.toast(R.string.insufficient_permissions)
         } else {
             if (NetworkPing.isNetworkAvailable(this)) {
+                screenAdIndex = 0
                 App.isAppOpenSameDay()
                 if (isAdExceedLimit()) {
                     vpnSwitchNoAd()

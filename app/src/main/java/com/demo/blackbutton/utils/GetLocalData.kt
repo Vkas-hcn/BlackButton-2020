@@ -56,7 +56,7 @@ object GetLocalData {
         return if (adsIndex < ads.size) {
             ads[adsIndex].bb_id.toString()
         } else {
-            ""
+            ads[0].bb_id.toString()
         }
     }
 
